@@ -1,0 +1,179 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('customers', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('nik')->unique();
+            $table->string('address');
+            $table->string('phone')->unique();
+            $table->timestamps();
+        });
+
+        Schema::create('categories', function (Blueprint $table) {
+            $table->id();
+            $table->string('name')->unique();
+            $table->timestamps();
+        });
+
+        Schema::create('types', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->timestamps();
+        });
+
+        Schema::create('karats', function (Blueprint $table) {
+            $table->id();
+            $table->string('karat');
+            $table->decimal('rate', 5, 2);
+            $table->bigInteger('buy_price');
+            $table->bigInteger('sell_price');
+            $table->timestamps();
+        });
+
+        Schema::create('suppliers', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('address');
+            $table->boolean('status')->default(false);
+            $table->timestamps();
+        });
+
+        Schema::create('products', function (Blueprint $table) {
+            $table->id();
+            $table->string('name')->unique();
+            $table->foreignId('category_id')->constrained('categories')->onDelete('cascade');
+            $table->foreignId('type_id')->constrained('types')->onDelete('cascade');
+            $table->foreignId('karat_id')->constrained('karats')->onDelete('cascade');
+            $table->decimal('weight', 10, 2);
+            $table->string('image')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('stocks', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
+            $table->foreignId('supplier_id')->nullable()->constrained('suppliers')->onDelete('set null');
+            $table->integer('stock_quantity')->default(0);
+            $table->date('received_at')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('stock_totals', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('product_id')->constrained('products')->OnDelete('cascade');
+            $table->integer('total')->default(0);
+            $table->timestamps();
+        });
+
+        Schema::create('stock_opnames', function (Blueprint $table) {
+            $table->id();
+            $table->date('opname_date');
+            $table->enum('status', ['pending', 'completed'])->default('pending');
+            $table->timestamps();
+        });
+
+        Schema::create('stock_opname_details', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('stock_opname_id')->constrained('stock_opnames')->cascadeOnDelete();
+            $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
+            $table->foreignId('stock_total_id')->constrained('stock_totals')->cascadeOnDelete();
+            $table->integer('physical_quantity');
+            $table->integer('quantity_difference');
+            $table->timestamps();
+        });
+
+        Schema::create('transactions', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('customer_id')->nullable()->constrained('customers')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->decimal('total_amount', 15, 2);
+            $table->decimal('cash', 15, 2)->nullable();
+            $table->decimal('change', 15, 2)->nullable();
+            $table->decimal('discount', 15, 2)->default(0);
+            $table->enum('payment_method', ['cash', 'online'])->default('cash');
+            $table->string('payment_link_url')->nullable();
+            $table->timestamp('transaction_date')->nullable();
+            $table->enum('status', ['pending', 'success', 'expired', 'failed'])->default('pending');
+            $table->timestamps();
+        });
+
+        Schema::create('transaction_details', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('transaction_id')->constrained('transactions')->onDelete('cascade');
+            $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
+            $table->integer('quantity');
+            $table->decimal('unit_price', 15, 2);
+            $table->decimal('subtotal', 15, 2);
+            $table->timestamps();
+        });
+
+        Schema::create('pawnings', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('customer_id')->constrained('customers')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->date('pawn_date');
+            $table->decimal('total_weight', 10, 2);
+            $table->decimal('estimated_value', 15, 2);
+            $table->decimal('loan_value', 15, 2);
+            $table->decimal('rate', 5, 2); // as percentage
+            $table->date('due_date');
+            $table->enum('status', ['active', 'paid_off', 'expired'])->default('active');
+            $table->text('notes')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('pawning_details', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('pawning_id')->constrained('pawnings')->onDelete('cascade');
+            $table->foreignId('karat_id')->constrained('karats')->onDelete('cascade');
+            $table->string('item_name');
+            $table->decimal('weight', 10, 2);
+            $table->decimal('estimated_value', 15, 2);
+            $table->string('item_photo')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('pawning_payments', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('pawning_id')->constrained('pawnings')->onDelete('cascade');
+            $table->date('payment_date');
+            $table->decimal('amount_paid', 15, 2);
+            $table->enum('payment_type', ['installment', 'full_payment'])->default('installment');
+            $table->text('notes')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('pawning_payments');
+        Schema::dropIfExists('pawning_details');
+        Schema::dropIfExists('pawnings');
+        Schema::dropIfExists('transaction_details');
+        Schema::dropIfExists('transactions');
+        Schema::dropIfExists('stock_opname_details');
+        Schema::dropIfExists('stock_opnames');
+        Schema::dropIfExists('stock_totals');
+        Schema::dropIfExists('stocks');
+        Schema::dropIfExists('products');
+        Schema::dropIfExists('suppliers');
+        Schema::dropIfExists('karats');
+        Schema::dropIfExists('types');
+        Schema::dropIfExists('categories');
+        Schema::dropIfExists('customers');
+    }
+};
