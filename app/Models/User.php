@@ -52,4 +52,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Pawning::class);
     }
+
+    public function purchases()
+    {
+        return $this->hasMany(Purchase::class);
+    }
 }

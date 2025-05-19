@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Filament\Clusters\MenuTransactions\Resources\BuyResource\Pages;
+namespace App\Filament\Clusters\MenuTransactions\Resources\PurchaseResource\Pages;
 
-use App\Filament\Clusters\MenuTransactions\Resources\BuyResource;
+use App\Filament\Clusters\MenuTransactions\Resources\PurchaseResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 
-class ListBuys extends ListRecords
+class ListPurchases extends ListRecords
 {
-    protected static string $resource = BuyResource::class;
+    protected static string $resource = PurchaseResource::class;
 
     protected function getHeaderActions(): array
     {

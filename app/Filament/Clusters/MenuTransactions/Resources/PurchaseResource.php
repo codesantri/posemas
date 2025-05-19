@@ -2,41 +2,43 @@
 
 namespace App\Filament\Clusters\MenuTransactions\Resources;
 
-use App\Models\Buy;
 use Filament\Forms;
 use App\Models\Type;
 use Filament\Tables;
 use App\Models\Karat;
+use App\Models\Stock;
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\Customer;
+use App\Models\Purchase;
 use Filament\Forms\Form;
+use App\Models\StockTotal;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
-use Illuminate\Support\HtmlString;
 use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Radio;
+use Filament\Tables\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Wizard;
-use Illuminate\Support\Facades\Blade;
 use Filament\Forms\Components\Repeater;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\FileUpload;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\Wizard\Step;
-use Illuminate\Contracts\Support\Htmlable;
 use App\Filament\Clusters\MenuTransactions;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use App\Filament\Clusters\MenuTransactions\Resources\BuyResource\Pages;
-use App\Filament\Clusters\MenuTransactions\Resources\BuyResource\RelationManagers;
+use App\Filament\Clusters\MenuTransactions\Resources\PurchaseResource\Pages;
+use App\Filament\Clusters\MenuTransactions\Resources\PurchaseResource\RelationManagers;
 
-class BuyResource extends Resource
+class PurchaseResource extends Resource
 {
-    protected static ?string $model = Product::class;
+    protected static ?string $model = Purchase::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
     protected static ?string $navigationLabel = "Pembelian";
     protected static ?string $breadcrumb = 'Pembelian';
     protected static ?string $label = 'Pembelian';
+
 
     protected static ?string $cluster = MenuTransactions::class;
 
@@ -54,6 +56,12 @@ class BuyResource extends Resource
                                 ->maxLength(100)
                                 ->prefixIcon('heroicon-m-user'),
 
+                            TextInput::make('nik')
+                                ->label('NIK')
+                                // ->required()
+                                ->maxLength(20)
+                                ->prefixIcon('heroicon-m-identification'),
+
                             TextInput::make('phone')
                                 ->label('No. Handphone')
                                 // ->required()
@@ -61,31 +69,30 @@ class BuyResource extends Resource
                                 ->maxLength(15)
                                 ->prefixIcon('heroicon-m-phone'),
 
-                            TextInput::make('nik')
-                                ->label('NIK')
-                                // ->required()
-                                ->maxLength(20)
-                                ->prefixIcon('heroicon-m-identification'),
-
                             TextInput::make('address')
                                 ->label('Alamat')
                                 // ->required()
                                 ->maxLength(255)
-                                ->columnSpanFull()
                                 ->prefixIcon('heroicon-m-map-pin'),
-                        ])
-                        ->columns(2),
+                        ])->columnSpanFull(),
 
                     Step::make('Data Produk')
-                        ->icon('heroicon-m-shopping-cart')
+                        ->icon('heroicon-m-shopping-bag')
                         ->schema([
                             Repeater::make('products')
                                 ->schema([
                                     Grid::make(2)->schema([
-                                        TextInput::make('product_name')
+                                        Select::make('product_name')
                                             ->label('Nama Produk')
-                                            // ->required()
-                                            ->maxLength(100),
+                                            ->searchable()
+                                            ->options(Product::pluck('name', 'name')) // key dan value sama: 'name'
+                                            ->preload()
+                                            ->createOptionForm([ // jika kamu ingin bisa tambah baru dari sini
+                                                TextInput::make('name')->label('Nama Produk')->required(),
+                                            ])
+                                        // ->allowCustomValue()
+                                        // ->maxLength(100)
+                                        ,
 
                                         Select::make('category_id')
                                             ->label('Kategori')
@@ -95,7 +102,7 @@ class BuyResource extends Resource
                                             ->preload(),
                                     ]),
 
-                                    Grid::make(3)->schema([
+                                    Grid::make(4)->schema([
                                         Select::make('type_id')
                                             ->label('Jenis')
                                             // ->required()
@@ -120,17 +127,14 @@ class BuyResource extends Resource
                                             ->minValue(0.01)
                                             ->default(0.01)
                                             ->suffix('Gram'),
+                                        TextInput::make('quantity')
+                                            ->label('Kuantitas')
+                                            // ->required()
+                                            ->numeric()
+                                            ->step(0.01)
+                                            ->minValue(1)
+                                            ->default(1),
                                     ]),
-
-                                    FileUpload::make('image')
-                                        ->label('Gambar Produk')
-                                        ->image()
-                                        ->directory('products')
-                                        ->maxSize(2048)
-                                        ->imagePreviewHeight('150')
-                                        ->downloadable()
-                                        ->openable()
-                                        ->columnSpanFull(),
                                 ])
                                 ->columns(1)
                                 ->minItems(1)
@@ -139,52 +143,71 @@ class BuyResource extends Resource
                                 ->itemLabel(fn(array $state): ?string => $state['product_name'] ?? null)
                                 ->createItemButtonLabel('Tambah'),
                         ]),
-
-                    Step::make('Pembayaran')
-                        ->icon('heroicon-m-credit-card')
-                        ->schema([
-                            TextInput::make('payment_amount')
-                                ->label('Pembayaran')
-                                // ->required()
-                                ->numeric()
-                                ->minValue(0)
-                                ->prefix('Rp')
-                                ->step(1000),
-
-                            TextInput::make('change_amount')
-                                ->label('Kembalian')
-                                ->numeric()
-                                ->minValue(0)
-                                ->prefix('Rp')
-                                ->readOnly(),
-
-                            Radio::make('payment_method')
-                                ->label('Metode Pembayaran')
-                                // ->required()
-                                ->options([
-                                    'cash' => 'Tunai',
-                                    'transfer' => 'Transfer Bank',
-                                    'qris' => 'QRIS',
-                                ])
-                                ->default('cash')
-                                ->inline(),
-                        ])
-                        ->columns(2),
                 ])->columnSpanFull(),
             ]);
     }
+
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->where('status', '!=', 'success');
+    }
+
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('invoice')
+                    ->label('Invoice')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('purchase_details_count')
+                    ->label('Item')
+                    ->counts('purchaseDetails'),
+                TextColumn::make('status')
+                    ->label('Status')
+                    ->color(fn(string $state): string => match ($state) {
+                        'pending' => 'warning',
+                        'success' => 'success',
+                        'expired' => 'gray',
+                        'failed' => 'danger',
+                        default => 'secondary',
+                    })
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                        'pending' => 'Menunggu',
+                        'success' => 'Berhasil',
+                        'expired' => 'Kedaluwarsa',
+                        'failed' => 'Gagal',
+                        default => ucfirst($state),
+                    }),
+                TextColumn::make('payment_method')
+                    ->label('Metode Pembayaran')
+                    ->color(fn(string $state): string => match ($state) {
+                        'cash' => 'gray',
+                        'online' => 'blue',
+                        default => 'secondary',
+                    })
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                        'cash' => 'Tunai',
+                        'online' => 'Online',
+                        default => ucfirst($state),
+                    }),
+                IconColumn::make('is_featured')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-badge')
+                    ->falseIcon('heroicon-o-x-mark')
             ])
             ->filters([
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Action::make('proses_payment')
+                    ->label('Proses Pembayaran')
+                    ->icon('heroicon-m-credit-card')
+                    ->color('success')
+                    ->button()
+                    ->url(fn($record) => Pages\InvoicePurchase::getUrl([$record]))
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -203,9 +226,11 @@ class BuyResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListBuys::route('/'),
-            // 'create' => Pages\CreateBuy::route('/create'),
-            // 'edit' => Pages\EditBuy::route('/{record}/edit'),
+            'index' => Pages\ListPurchases::route('/'),
+            'create' => Pages\CreatePurchase::route('/create'),
+            'invoice' => Pages\InvoicePurchase::route('/invoice/{invoice}'),
+            // 'view' => Pages\ViewPurchase::route('/{record}'),
+            // 'edit' => Pages\EditPurchase::route('/{record}/edit'),
         ];
     }
 }

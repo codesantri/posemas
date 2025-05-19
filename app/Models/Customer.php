@@ -16,6 +16,11 @@ class Customer extends Model
         return $this->hasMany(Transaction::class);
     }
 
+    public function purchases()
+    {
+        return $this->hasMany(Purchase::class);
+    }
+
     public function pawnings()
     {
         return $this->hasMany(Pawning::class);
