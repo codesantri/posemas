@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('nik')->unique();
-            $table->string('address');
             $table->string('phone')->unique();
+            $table->string('address');
             $table->timestamps();
         });
 
@@ -93,14 +93,24 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        Schema::create('carts', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
+            $table->integer('quantity')->default(0);
+            $table->decimal('weight', 15, 2);
+            $table->bigInteger('buy_price')->default(0);
+            $table->bigInteger('subtotal')->default(0);
+            $table->timestamps();
+        });
+
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('customer_id')->nullable()->constrained('customers')->onDelete('cascade');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->decimal('total_amount', 15, 2);
-            $table->decimal('cash', 15, 2)->nullable();
-            $table->decimal('change', 15, 2)->nullable();
-            $table->decimal('discount', 15, 2)->default(0);
+            $table->bigInteger('total_amount');
+            $table->bigInteger('cash')->nullable();
+            $table->bigInteger('change')->default(0);
+            $table->bigInteger('discount')->default(0);
             $table->enum('payment_method', ['cash', 'online'])->default('cash');
             $table->string('payment_link_url')->nullable();
             $table->timestamp('transaction_date')->nullable();
@@ -113,8 +123,32 @@ return new class extends Migration
             $table->foreignId('transaction_id')->constrained('transactions')->onDelete('cascade');
             $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
             $table->integer('quantity');
-            $table->decimal('unit_price', 15, 2);
-            $table->decimal('subtotal', 15, 2);
+            $table->decimal('weight', 15, 2);
+            $table->bigInteger('buy_price')->default(0);
+            $table->bigInteger('subtotal')->default(0);
+            $table->timestamps();
+        });
+
+        Schema::create('purchases', function (Blueprint $table) {
+            $table->id();
+            $table->string('invoice')->unique();
+            $table->foreignId('customer_id')->nullable()->constrained('customers')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->enum('payment_method', ['cash', 'online'])->default('cash');
+            $table->enum('status', ['pending', 'success', 'expired', 'failed'])->default('pending');
+            $table->timestamp('purchase_date')->nullable();
+            $table->bigInteger('total_amount');
+            $table->timestamps();
+        });
+
+        Schema::create('purchase_details', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('purchase_id')->constrained('purchases')->onDelete('cascade');
+            $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
+            $table->integer('quantity');
+            $table->decimal('weight', 15, 2);
+            $table->bigInteger('buy_price')->default(0);
+            $table->bigInteger('subtotal')->default(0);
             $table->timestamps();
         });
 

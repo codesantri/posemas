@@ -2,17 +2,13 @@
 
 namespace App\Filament\Clusters\MenuTransactions\Resources\PurchaseResource\Pages;
 
-use Filament\Actions;
 use App\Models\Purchase;
 use Filament\Forms\Form;
-use Filament\Pages\Actions\Action;
 use Filament\Resources\Pages\Page;
 use Filament\Forms\Components\Radio;
-use Filament\Forms\Components\Wizard;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
-use Illuminate\Contracts\Support\Htmlable;
 use Filament\Forms\Concerns\InteractsWithForms;
 use App\Filament\Clusters\MenuTransactions\Resources\PurchaseResource;
 
@@ -21,7 +17,7 @@ class InvoicePurchase extends Page implements HasForms
     use InteractsWithForms;
     protected static string $resource = PurchaseResource::class;
 
-    protected static string $view = 'filament.clusters.menu-transactions.resources.purchase-resource.pages.invoice-purchase';
+    protected static string $view = 'filament.clusters.menu-transactions.resources.purchase-resource.invoice-purchase';
     protected static ?string $title = 'Invoice';
     protected static ?string $breadcrumb = 'Invoice';
 

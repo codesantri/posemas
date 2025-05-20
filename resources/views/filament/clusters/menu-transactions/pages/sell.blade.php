@@ -1,34 +1,41 @@
 <x-filament-panels::page>
-        {{-- <x-filament-tables::search-field/> --}}
 <div class="flex flex-col lg:flex-row gap-4">
     {{-- KIRI: Produk --}}
     <div class="w-full">
-        <div class="mb-4 flex flex-col sm:flex-row sm:items-center lg:justify-between gap-4">
+        <div class="mb-4 flex flex-col sm:flex-row sm:items-center gap-4">
             <x-filament-panels::global-search.field wire:model.live="search" autofocus />
+            <div class="flex">
+                {{-- <x-filament::dropdown>
+                    <x-slot name="trigger">
+                        <x-filament::button>
+                            <x-filament::icon icon="heroicon-o-squares-2x2" class="w-5 h-5 text-white mr-2 inline-block" />{{__('Kategori')}}
+                        </x-filament::button>
+                    </x-slot>
+                
+                    <x-filament::dropdown.list>
+                        
+                        <x-filament::dropdown.list.item wire:click="$set('categoryId', '')"
+                            style="{{ $categoryId === '' || $categoryId === null ? 'background-color: #ea9101; color: white;' : '' }}">
+                            Semua Kategori
+                        </x-filament::dropdown.list.item>
+                
+                        @foreach (\App\Models\Category::orderBy('name')->get() as $category)
+                        <x-filament::dropdown.list.item wire:click="$set('categoryId', {{ $category->id }})"
+                            style="{{ $categoryId == $category->id ? 'background-color: #ea9101; color: white;' : '' }}">
+                            {{ $category->name }}
+                        </x-filament::dropdown.list.item>
+                        @endforeach
+                    </x-filament::dropdown.list>
+      
+                </x-filament::dropdown>
+                <x-filament::button color="success" class="mx-3" wire:click='gotoCart'>
+                    <x-filament::icon icon="heroicon-o-shopping-bag" class="w-5 h-5 inline-block" />
+                    <x-slot name="badge" color="success">
+                        {{ $totalOrder }}
+                    </x-slot>
+                </x-filament::button> --}}
+            </div>
             
-            <x-filament::dropdown>
-                <x-slot name="trigger">
-                    <x-filament::button>
-                        <x-filament::icon icon="heroicon-o-squares-2x2" class="w-5 h-5 text-white mr-2" />
-                    </x-filament::button>
-                </x-slot>
-            
-                <x-filament::dropdown.list>
-                    {{-- Semua Kategori --}}
-                    <x-filament::dropdown.list.item wire:click="$set('categoryId', '')"
-                        style="{{ $categoryId === '' || $categoryId === null ? 'background-color: #ea9101; color: white;' : '' }}">
-                        Semua Kategori
-                    </x-filament::dropdown.list.item>
-            
-                    {{-- Looping kategori --}}
-                    @foreach (\App\Models\Category::orderBy('name')->get() as $category)
-                    <x-filament::dropdown.list.item wire:click="$set('categoryId', {{ $category->id }})"
-                        style="{{ $categoryId == $category->id ? 'background-color: #ea9101; color: white;' : '' }}">
-                        {{ $category->name }}
-                    </x-filament::dropdown.list.item>
-                    @endforeach
-                </x-filament::dropdown.list>
-            </x-filament::dropdown>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
             @forelse ($this->products as $item)
@@ -53,7 +60,8 @@
                         </h5>
                 
                         <div class="flex items-center justify-between">
-                            <x-filament::button wire:click='addToCart({{ $item->id }})' color="success" class="w-full text-xs flex items-center justify-center gap-1">
+                            <x-filament::button wire:click="addToCart({{ $item->id }})" color="success"
+                                class="w-full text-xs flex items-center justify-center gap-1">
                                 <x-filament::icon icon="heroicon-o-shopping-cart" class="w-4 h-4 inline-block" />
                                 <span>Add To Cart</span>
                             </x-filament::button>
@@ -67,7 +75,10 @@
         <div class="my-4">
             <x-filament::pagination :paginator="$this->products"/>
         </div>
+        
     </div>
+
+    
 
     {{-- KANAN: Cart --}}
     {{-- <div class="w-full lg:w-1/4">
@@ -89,5 +100,4 @@
         </x-filament::card>
     </div> --}}
 </div>
-
 </x-filament-panels::page>

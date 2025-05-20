@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
 class DataSeeder extends Seeder
 {
@@ -13,6 +12,34 @@ class DataSeeder extends Seeder
      */
     public function run(): void
     {
+        // Customers
+        DB::table('customers')->insert([
+            [
+                'name' => 'Andi Saputra',
+                'nik' => '3201012001990001',
+                'address' => 'Jl. Kenanga No.5, Jakarta',
+                'phone' => '081234567890',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Siti Aminah',
+                'nik' => '3201023002880002',
+                'address' => 'Jl. Melati No.3, Bandung',
+                'phone' => '081298765432',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Budi Santoso',
+                'nik' => '3201031503770003',
+                'address' => 'Jl. Anggrek No.7, Surabaya',
+                'phone' => '081345678901',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
         DB::table('categories')->insert([
             ['name' => 'Emas'],
             ['name' => 'Perak'],
@@ -47,7 +74,7 @@ class DataSeeder extends Seeder
                 'type_id' => 1,     // asumsi 'Cincin' id = 1
                 'karat_id' => 1,    // asumsi '24K' id = 1
                 'weight' => 5.50,
-                'image' => 'cincin-emas-24k.jpg',
+                'image' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -57,7 +84,7 @@ class DataSeeder extends Seeder
                 'type_id' => 2,     // 'Kalung'
                 'karat_id' => 2,    // '22K'
                 'weight' => 10.25,
-                'image' => 'kalung-perak-22k.jpg',
+                'image' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -67,10 +94,47 @@ class DataSeeder extends Seeder
                 'type_id' => 3,     // 'Gelang'
                 'karat_id' => 3,    // '18K'
                 'weight' => 7.75,
-                'image' => 'gelang-platina-18k.jpg',
+                'image' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+        ]);
+
+
+        // Stock Totals
+        DB::table('stock_totals')->insert([
+            ['product_id' => 1, 'total' => 10, 'created_at' => now(), 'updated_at' => now()],
+            ['product_id' => 2, 'total' => 5, 'created_at' => now(), 'updated_at' => now()],
+            ['product_id' => 3, 'total' => 0, 'created_at' => now(), 'updated_at' => now()],
+        ]);
+
+        // Stocks (Detail stok per pemasok)
+        DB::table('stocks')->insert([
+            [
+                'product_id' => 1,
+                'supplier_id' => 1,
+                'stock_quantity' => 6,
+                'received_at' => now()->subDays(10),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'product_id' => 1,
+                'supplier_id' => 2,
+                'stock_quantity' => 4,
+                'received_at' => now()->subDays(5),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'product_id' => 2,
+                'supplier_id' => 1,
+                'stock_quantity' => 5,
+                'received_at' => now()->subDays(7),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            // No stock for product 3 to simulate empty stock
         ]);
     }
 }
