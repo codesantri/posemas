@@ -107,8 +107,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('customer_id')->nullable()->constrained('customers')->onDelete('cascade');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->string('invoice')->unique();
             $table->bigInteger('total_amount');
-            $table->bigInteger('cash')->nullable();
+            $table->bigInteger('cash')->default(0);
             $table->bigInteger('change')->default(0);
             $table->bigInteger('discount')->default(0);
             $table->enum('payment_method', ['cash', 'online'])->default('cash');

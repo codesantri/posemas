@@ -25,4 +25,19 @@ class Transaction extends Model
     {
         return $this->hasMany(TransactionDetail::class);
     }
+
+    public function getRouteKeyName()
+    {
+        return 'invoice';
+    }
+
+    protected static function booted()
+    {
+        static::creating(function ($transaction) {
+            if (!$transaction->invoice) {
+                $latestId = static::max('id') + 1;
+                $transaction->invoice = 'INV-' . now()->format('Ymd') . '-' . str_pad($latestId, 3, '0', STR_PAD_LEFT);
+            }
+        });
+    }
 }
