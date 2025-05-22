@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Purchase;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 
 class PrinterController extends Controller
@@ -12,5 +13,11 @@ class PrinterController extends Controller
         $invoice = Purchase::where('invoice', $inv)->first();
         // dd($invoice);
         return view('prints.invoice-purchase', ['invoice' => $invoice]);
+    }
+
+    public function printInvoiceSale($inv)
+    {
+        $invoice = Transaction::where('invoice', $inv)->first();
+        return view('prints.invoice-sale', ['invoice' => $invoice]);
     }
 }

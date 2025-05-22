@@ -57,7 +57,7 @@
 
         <div class="flex justify-between font-semibold mb-1">
             <span>Total Pembayaran</span>
-            <strong>Rp {{ number_format($total, 0, ',', '.') }}</strong>
+            <strong>Rp {{ number_format($totalPayment, 0, ',', '.') }}</strong>
         </div>
 
         <p class="text-xs text-gray-500 mb-4">
@@ -70,7 +70,7 @@
                 Memproses...
             </div>
             <span wire:loading.remove wire:target="checkout">
-                Bayar Sekarang
+                Bayar Rp {{ number_format($totalPayment, 0, ',', '.') }}
             </span>
         </x-filament::button>
         <p class="text-center text-indigo-600 text-xs mt-3">

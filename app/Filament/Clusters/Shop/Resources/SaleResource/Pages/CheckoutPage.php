@@ -12,6 +12,7 @@ use Filament\Resources\Pages\Page;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Log;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Split;
 use Illuminate\Support\Facades\Auth;
 use Filament\Forms\Components\Select;
@@ -37,7 +38,20 @@ class CheckoutPage extends Page implements HasForms
     public ?int $discount = 0;
     public ?int $totalDiscount = 0;
     public ?int $totalChange = 0;
+    public ?int $totalPayment = 0;
     public ?int $total = 0;
+
+
+
+    public $payment_method = '';
+    protected $queryString = ['payment_method'];
+
+
+    protected $rules = [
+        'payment_method' => 'required|in:cash,online',
+        'cash' => 'required_if:payment_method,cash|numeric',
+        'discount' => 'nullable|numeric',
+    ];
 
     // Add these lifecycle hooks
     protected $listeners = ['updatedCash', 'updatedDiscount'];
@@ -59,6 +73,7 @@ class CheckoutPage extends Page implements HasForms
         $this->totalDiscount = $this->discount;
         $totalAfterDiscount = $this->total - $this->totalDiscount;
         $this->totalChange = max(0, $this->cash - $totalAfterDiscount);
+        $this->totalPayment = $this->total - $this->totalDiscount;
     }
 
     public function getTitle(): string|Htmlable
@@ -66,15 +81,23 @@ class CheckoutPage extends Page implements HasForms
         return 'Pembayaran';
     }
 
-    public function getHeading(): string|Htmlable
-    {
-        return "";
-    }
+    // public function getHeading(): string|Htmlable
+    // {
+    //     return "";
+    // }
 
     public function mount($inv): void
     {
-        $this->loadTransaction($inv);
-        $this->form->fill();
+        if ($inv) {
+            $this->loadTransaction($inv);
+            $this->payment_method = $this->transaction->payment_method ?? 'cash';
+            $this->form->fill([
+                'payment_method' => $this->payment_method
+            ]);
+        } else {
+            $this->redirect(route('filament.admin.shop.resources.sales.index'));
+            return;
+        }
     }
 
     public function loadTransaction($inv): void
@@ -91,13 +114,13 @@ class CheckoutPage extends Page implements HasForms
                 ->title('Transaksi tidak ditemukan')
                 ->danger()
                 ->send();
-
             $this->redirect(route('filament.admin.shop.resources.sales.index'));
             return;
         }
-
         $this->transaction = $transaction;
-        $this->total = $this->transaction->total_amount;
+        $this->total = $this->transaction->details->sum('subtotal');
+        $this->totalPayment = $this->total;
+        $this->payment_method = $this->transaction->payment_method;
     }
 
     public function form(Form $form): Form
@@ -111,61 +134,6 @@ class CheckoutPage extends Page implements HasForms
     {
         return [
             Split::make([
-                // Section::make([
-                //     TextInput::make('customer')
-                //         ->label('Nama Pelanggan')
-                //         ->prefixIcon('heroicon-m-identification')
-                //         ->disabled()
-                //         ->default($this->transaction->customer->name . ' - ' . $this->transaction->customer->nik ?? 'Unknown'),
-                //     TextInput::make('cash')
-                //         ->label('Nominal Pembayaran')
-                //         ->prefix('Rp.')
-                //         ->required()
-                //         ->placeholder('Masukkan nominal')
-                //         ->inputMode('decimal')
-                //         ->live()
-                //         ->afterStateUpdated(function ($state, $set) {
-                //             // Auto convert to integer (hapus titik, convert string ke int)
-                //             $cash = (int) str_replace('.', '', $state);
-
-                //             // Ambil diskon dari data form
-                //             $discount = (int) str_replace('.', '', $this->data['discount'] ?? '0');
-
-                //             // Hitung total bayar setelah diskon
-                //             $totalAfterDiscount = $this->total - $discount;
-
-                //             // Hitung kembalian (change)
-                //             $change = max(0, $cash - $totalAfterDiscount);
-
-                //             // Set ke field 'change' dengan format rupiah
-                //             $set('change', number_format($change, 0, ',', '.'));
-                //         })
-                //         ->extraAttributes([
-                //             'x-data' => '{}',
-                //             'x-init' => <<<JS
-                //                 \$el.addEventListener('input', function(e) {
-                //                     let value = e.target.value.replace(/[^\\d]/g, '');
-                //                     if (value === '') return;
-                //                     value = new Intl.NumberFormat('id-ID').format(value);
-                //                     e.target.value = value;
-                //                 });
-                //             JS,
-                //             'class' => 'py-2 w-full rounded-lg',
-                //             'style' => 'font-size: 3rem; font-weight: bold;',
-                //         ]),
-
-                //     Radio::make('payment_method')
-                //         ->label('Metode Pembayaran')
-                //         ->required()
-                //         ->options([
-                //             'cash' => 'Tunai',
-                //             'online' => 'Transfer'
-                //         ])
-                //         ->default('cash')
-                //         ->inline()
-                //         ->live(),
-                // ]),
-
                 Section::make([
                     Placeholder::make('orders')
                         ->label('')
@@ -176,10 +144,25 @@ class CheckoutPage extends Page implements HasForms
                                     'discount' => $this->totalDiscount,
                                     'change' => $this->totalChange,
                                     'total' => $this->total,
+                                    'payment_method' => $this->payment_method,
                                 ])->render()
                             );
                         }),
-                ]),
+                    Radio::make('payment_method')
+                        ->label('Metode Pembayaran')
+                        ->options([
+                            'cash' => 'Tunai',
+                            'online' => 'Transfer',
+                        ])
+                        ->default(fn() => $this->payment_method) // Gunakan closure
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(function ($state) {
+                            $this->payment_method = $state;
+                            $this->paymentMethod($state);
+                            // $this->dispatch('payment-method-updated', method: $state);
+                        })
+                ])->heading('Kasir : ' . $this->transaction->user->name),
 
                 Section::make([
                     Placeholder::make('orders')
@@ -190,12 +173,91 @@ class CheckoutPage extends Page implements HasForms
                                     'state' => $this->transaction,
                                     'discount' => $this->totalDiscount,
                                     'change' => $this->totalChange,
-                                    'total' => $this->total,
+                                    'totalPayment' => $this->totalPayment,
+                                    'subtotal' => $this->total,
                                 ])->render()
                             );
                         }),
-                ]),
+                ])->collapsible()->heading($this->transaction->invoice),
             ])->from('md'),
         ];
+    }
+
+    public function paymentMethod($method): void
+    {
+        $this->payment_method = $method;
+        $this->transaction->update(['payment_method' => $method]);
+
+        if ($method === 'online') {
+            $this->cash = 0;
+            $this->totalChange = 0;
+        }
+        $this->loadTransaction($this->transaction->invoice);
+        $this->calculateTotal();
+        $this->dispatch('refresh');
+        Notification::make()
+            ->title('Metode Pembayaran Berhasil Diubah')
+            ->success()
+            ->duration(3000)
+            ->send();
+    }
+
+    public function paymentProcess()
+    {
+        // dd($this->totalPayment);
+        if (!$this->transaction->invoice || $this->transaction->status !== 'pending') {
+            Notification::make()
+                ->title('Transaksi tidak ditemukan')
+                ->danger()
+                ->duration(3000)
+                ->send();
+            return;
+        }
+
+        try {
+            $this->validate();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Ambil error message pertama dari validasi
+            $errorMessage = collect($e->validator->errors()->all())->first();
+
+            Notification::make()
+                ->title('Gagal Validasi')
+                ->body($errorMessage)
+                ->danger()
+                ->duration(3000)
+                ->send();
+
+            return;
+        }
+
+        // Lanjut proses jika valid...
+        if ($this->payment_method == 'cash') {
+            if ($this->cash <  $this->totalPayment) {
+                Notification::make()
+                    ->title('Nominal pembayaran kurang dari total yang harus dibayar')
+                    ->danger()
+                    ->duration(3000)
+                    ->send();
+                return;
+            }
+
+            $this->totalChange = $this->cash - ($this->total - $this->discount);
+        }
+
+        $this->transaction->update([
+            'total_amount' => $this->totalPayment,
+            'payment_method' => $this->payment_method,
+            'status' => 'success',
+            'cash' => $this->cash,
+            'discount' => $this->discount,
+            'transaction_date' => now(),
+        ]);
+
+        Notification::make()
+            ->title('Pembayaran Berhasil')
+            ->success()
+            ->duration(3000)
+            ->send();
+        return redirect()->route('filament.admin.shop.resources.sales.orders');
     }
 }

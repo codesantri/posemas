@@ -46,18 +46,18 @@ class OrdersPage extends Page implements HasTable
                 TextColumn::make('invoice')
                     ->label('Invoice')
                     ->searchable(),
-                TextColumn::make('total_amount')
-                    ->money('IDR')
-                    ->label('Jumlah'),
-
                 TextColumn::make('cash')
                     ->money('IDR')
                     ->label('Tunai'),
-
                 TextColumn::make('change')
                     ->money('IDR')
                     ->label('Kembalian'),
-
+                TextColumn::make('discount')
+                    ->money('IDR')
+                    ->label('Diskon'),
+                TextColumn::make('total_amount')
+                    ->money('IDR')
+                    ->label('Jumlah'),
                 TextColumn::make('payment_method')
                     ->label('Pembayaran')
                     ->badge()
@@ -106,6 +106,19 @@ class OrdersPage extends Page implements HasTable
                     ->modalButton('Ya, Proses Pembayaran')
                     ->action(function ($record, $data) {
                         return redirect()->route('filament.admin.shop.resources.sales.checkout', $record->invoice);
+                    })
+                    ->link(),
+                Action::make('print')
+                    ->label('Cetak Nota')
+                    ->icon('heroicon-m-printer')
+                    ->color('danger')
+                    ->visible(fn($record) => $record->status === 'success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Cetak Nota')
+                    ->modalDescription('Apakah kamu yakin mau cetak nota untuk pesanan ini?')
+                    ->modalButton('Ya, Cetak')
+                    ->action(function ($record, $data) {
+                        return redirect()->route('print.sale', $record->invoice);
                     })
                     ->link(),
                 Tables\Actions\DeleteAction::make(),

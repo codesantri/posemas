@@ -13,4 +13,5 @@ Route::get('/', function () {
 
 Route::prefix('print')->group(function () {
     Route::get('/purchase/{inv}', [PrinterController::class, 'printInvoicePurchase'])->name('print.purchase');
+    Route::get('/sale/{inv}', [PrinterController::class, 'printInvoiceSale'])->name('print.sale');
 });
