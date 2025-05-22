@@ -31,17 +31,21 @@ class ProductResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('name')
                     ->label('Nama Produk')
-                    ->required(),
+                    ->required()
+                    ->maxLength(255),
 
                 Forms\Components\Select::make('category_id')
                     ->label('Kategori')
                     ->relationship('category', 'name')
-                    ->required(),
+                    ->required()
+                    ->rules(['exists:categories,id']),
+
                 Grid::make(3)->schema([
                     Forms\Components\Select::make('type_id')
                         ->label('Jenis')
                         ->relationship('type', 'name')
-                        ->required(),
+                        ->required()
+                        ->rules(['exists:types,id']),
 
                     Forms\Components\Select::make('karat_id')
                         ->label('Karat-Kadar')
@@ -50,22 +54,27 @@ class ProductResource extends Resource
                                 return [$karat->id => $karat->karat . ' - ' . $karat->rate . '%'];
                             })->toArray();
                         })
-                        ->required(),
+                        ->required()
+                        ->rules(['exists:karats,id']),
+
                     Forms\Components\TextInput::make('weight')
                         ->label('Berat (gram)')
-                        ->type('number') // ini kunci utama!
+                        ->type('number')
                         ->step(0.01)
                         ->default(0.01)
+                        ->minValue(0.01)
                         ->suffix('Gram')
-                        ->required(),
+                        ->required()
+                        ->rules(['numeric', 'min:0.01']),
                 ]),
-
 
                 Forms\Components\FileUpload::make('image')
                     ->label('Gambar Produk')
                     ->image()
                     ->directory('produk')
-                    ->maxSize(2048)->columnSpanFull(),
+                    ->maxSize(2048)
+                    ->imagePreviewHeight('200')
+                    ->columnSpanFull()
             ]);
     }
 

@@ -3,13 +3,13 @@
 namespace App\Filament\Clusters\Stocker\Resources;
 
 use Filament\Forms;
+use Filament\Forms\Components\TextInput;
 use Filament\Tables;
 use App\Models\Supplier;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
 use App\Filament\Clusters\Stocker;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Radio;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
@@ -28,25 +28,31 @@ class SupplierResource extends Resource
 
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('name')
-                    ->maxLength(255)
-                    ->label('Nama Supplier')
-                    ->required()->columnSpanFull(),
-                Forms\Components\TextInput::make('address')
-                    ->maxLength(255)
-                    ->label('Alamat')
-                    ->columnSpanFull()
-                    ->required(),
-                Radio::make('status')
-                    ->options([
-                        true => 'Aktif',
-                        false => 'Non Aktif',
-                    ])->label('Status')
-                    ->default(true)
-                    ->required()
-            ]);
+        return $form->schema([
+            TextInput::make('name')
+                ->label('Nama Supplier')
+                ->required()
+                ->maxLength(255)
+                ->rules(['string', 'max:255'])
+                ->columnSpanFull(),
+
+            TextInput::make('address')
+                ->label('Alamat')
+                ->required()
+                ->maxLength(255)
+                ->rules(['string', 'max:255'])
+                ->columnSpanFull(),
+
+            Radio::make('status')
+                ->label('Status')
+                ->options([
+                    true => 'Aktif',
+                    false => 'Non Aktif',
+                ])
+                ->default(true)
+                ->required()
+                ->rules(['boolean']),
+        ]);
     }
 
     public static function table(Table $table): Table

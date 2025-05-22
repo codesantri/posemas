@@ -97,7 +97,7 @@ class OrdersPage extends Page implements HasTable
             ->actions([
                 Action::make('payment')
                     ->label('Proses Pembayaran')
-                    ->icon('heroicon-m-currency-dollar')
+                    ->icon('heroicon-m-credit-card')
                     ->color('success')
                     ->visible(fn($record) => $record->status === 'pending')
                     ->requiresConfirmation()

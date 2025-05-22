@@ -2,24 +2,26 @@
 
 namespace App\Filament\Clusters\Shop\Resources;
 
-use App\Filament\Clusters\Shop;
-use App\Filament\Clusters\Shop\Resources\ChangeResource\Pages;
-use App\Filament\Clusters\Shop\Resources\ChangeResource\RelationManagers;
+use Filament\Forms;
+use Filament\Tables;
 use App\Models\Change;
 use App\Models\Product;
-use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables;
 use Filament\Tables\Table;
+use App\Filament\Clusters\Shop;
+use Filament\Resources\Resource;
+use Filament\Pages\SubNavigationPosition;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Clusters\Shop\Resources\ChangeResource\Pages;
+use App\Filament\Clusters\Shop\Resources\ChangeResource\RelationManagers;
 
 class ChangeResource extends Resource
 {
     protected static ?string $model = Product::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;
 
     protected static ?string $cluster = Shop::class;
 

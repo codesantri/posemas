@@ -136,6 +136,7 @@ return new class extends Migration
             $table->foreignId('customer_id')->nullable()->constrained('customers')->onDelete('cascade');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->enum('payment_method', ['cash', 'online'])->default('cash');
+            $table->string('payment_link')->nullable();
             $table->enum('status', ['pending', 'success', 'expired', 'failed'])->default('pending');
             $table->timestamp('purchase_date')->nullable();
             $table->bigInteger('total_amount');

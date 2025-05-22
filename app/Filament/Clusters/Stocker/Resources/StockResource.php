@@ -25,7 +25,7 @@ class StockResource extends Resource
     protected static ?string $navigationLabel = 'Stok Produk';
     protected static ?string $pluralLabel = 'Stok';
     protected static ?string $modelLabel = 'Stok';
-    
+
     protected static ?string $cluster = Stocker::class;
 
     public static function form(Form $form): Form
@@ -42,13 +42,16 @@ class StockResource extends Resource
                                     ->relationship('product', 'name')
                                     ->searchable()
                                     ->preload()
-                                    ->required(),
+                                    ->required()
+                                    ->rules(['exists:products,id']),
 
                                 Select::make('supplier_id')
                                     ->label('Supplier')
                                     ->relationship('supplier', 'name')
                                     ->searchable()
-                                    ->preload(),
+                                    ->preload()
+                                    ->required()
+                                    ->rules(['exists:suppliers,id']),
                             ]),
 
                             Grid::make(2)->schema([
@@ -56,11 +59,13 @@ class StockResource extends Resource
                                     ->label('Jumlah Stok')
                                     ->type('number')
                                     ->minValue(1)
-                                    ->required(),
+                                    ->required()
+                                    ->rules(['numeric', 'min:1']),
 
                                 DatePicker::make('received_at')
                                     ->label('Tanggal Diterima')
-                                    ->required(),
+                                    ->required()
+                                    ->rules(['date']),
                             ]),
                         ])
                         ->minItems(1)

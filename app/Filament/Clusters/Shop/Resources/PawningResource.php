@@ -2,23 +2,27 @@
 
 namespace App\Filament\Clusters\Shop\Resources;
 
-use App\Filament\Clusters\Shop;
-use App\Filament\Clusters\Shop\Resources\PawningResource\Pages;
-use App\Filament\Clusters\Shop\Resources\PawningResource\RelationManagers;
-use App\Models\Pawning;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
+use App\Models\Pawning;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
+use App\Filament\Clusters\Shop;
+use Filament\Resources\Resource;
+use Filament\Pages\SubNavigationPosition;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Clusters\Shop\Resources\PawningResource\Pages;
+use App\Filament\Clusters\Shop\Resources\PawningResource\RelationManagers;
 
 class PawningResource extends Resource
 {
     protected static ?string $model = Pawning::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-scale';
+    protected static ?string $navigationLabel = 'Penggadaian';
+    protected static ?string $breadcrumb = 'Penggadaian';
+    protected static SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;
 
     protected static ?string $cluster = Shop::class;
 
@@ -61,7 +65,7 @@ class PawningResource extends Resource
         return [
             'index' => Pages\ListPawnings::route('/'),
             'create' => Pages\CreatePawning::route('/create'),
-            'edit' => Pages\EditPawning::route('/{record}/edit'),
+            // 'edit' => Pages\EditPawning::route('/{record}/edit'),
         ];
     }
 }
