@@ -9,7 +9,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Contracts\Support\Htmlable;
 use App\Filament\Clusters\Shop\Resources\SaleResource;
-use App\Models\Transaction;
+use App\Models\Sale;
 
 class ListSales extends ListRecords
 {
@@ -59,10 +59,10 @@ class ListSales extends ListRecords
         $this->resetPage();
     }
 
-    public function getHeading(): string|Htmlable
-    {
-        return '';
-    }
+    // public function getHeading(): string|Htmlable
+    // {
+    //     return '';
+    // }
 
 
     // Add to Cart
@@ -118,7 +118,10 @@ class ListSales extends ListRecords
     public function countOrder()
     {
         $this->totalOrder = Cart::count();
-        $this->totalCheckout = Transaction::where('status', 'pending')->count();
+
+        $this->totalCheckout = Sale::whereHas('transaction', function ($query) {
+            $query->where('status', 'pending');
+        })->count();
     }
 
     public function gotoCart()

@@ -1,4 +1,31 @@
 <x-filament::page>
+    @push('styles')
+        <style>
+        .image-container {
+        width: 100%; /* Full lebar card */
+        aspect-ratio: 2 / 1; /* Bikin kotak persegi yang konsisten */
+        border-radius: 0.5rem; /* Rounded-lg */
+        overflow: hidden;
+        background-color: #f3f4f6; /* bg-gray-100 */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        }
+
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+
+        .placeholder-icon {
+        width: 50%;
+        height: 50%;
+        color: #9ca3af;
+        }   
+        </style>
+    @endpush
     <div class="flex justify-between items-center mb-4">
         <x-filament-panels::global-search.field wire:model.debounce.300ms="search" autofocus />
     
@@ -46,7 +73,13 @@
         @forelse ($this->products as $item)
         <div
             class="w-full max-w-sm bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
-            <img class="p-8 rounded-t-lg" src="{{ asset('emas.jpg') }}" alt="product image" />
+            <div class="image-container">
+                @if ($item->image)
+                <img src="{{ asset('storage/'.$item->image) }}" alt="{{ $item->image }}" />
+                @else
+                <x-heroicon-o-photo class="placeholder-icon" />
+                @endif
+            </div>
             <div class="px-3 py-3">
                 <div class="flex items-center justify-around my-2">
                     <x-filament::badge color="info" class="mx-1">
@@ -66,7 +99,7 @@
                 </div>
                 <div class="mt-3">
                     <x-filament::button wire:click="addToCart({{ $item->id }})" color="success"
-                        class="w-full text-xs flex items-center justify-center gap-1">
+                        class="text-xs w-full flex items-center justify-center gap-1">
                         <x-filament::icon icon="heroicon-o-shopping-cart" class="w-4 h-4 inline-block" />
                         <span>Add To Cart</span>
                     </x-filament::button>

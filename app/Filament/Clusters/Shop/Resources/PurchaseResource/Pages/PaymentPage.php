@@ -2,18 +2,14 @@
 
 namespace App\Filament\Clusters\Shop\Resources\PurchaseResource\Pages;
 
-use Midtrans\Snap;
-use App\Models\Purchase;
 use Filament\Forms\Form;
+use App\Models\Transaction;
 use Filament\Resources\Pages\Page;
 use Illuminate\Support\HtmlString;
+use Filament\Forms\Components\Card;
 use Illuminate\Support\Facades\Log;
 use Filament\Forms\Components\Radio;
-use Filament\Forms\Components\Split;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Contracts\HasForms;
-use Midtrans\Config as MidtransConfig;
-use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -28,13 +24,9 @@ class PaymentPage extends Page implements HasForms
     protected static ?string $title = 'Invoice';
     protected static ?string $breadcrumb = 'Invoice';
 
-    public Purchase $record;
+    public Transaction $record;
     public ?array $data = [];
 
-    protected $listeners = [
-        'payment-status-handler' => 'handlePaymentStatus',
-        'payment-popup-closed' => 'handlePopupClosed'
-    ];
 
 
     public function mount(string $invoice): void
@@ -50,14 +42,14 @@ class PaymentPage extends Page implements HasForms
 
     public function loadPage(string $invoice): void
     {
-        $this->record = Purchase::where('invoice', $invoice)->firstOrFail();
+        $this->record = Transaction::where('invoice', $invoice)->first();
         $this->redirectBack($this->record);
 
         $this->record->status = 'success';
         $this->data['payment_method'] = $this->record->payment_method;
     }
 
-    public function redirectBack(Purchase $record): void
+    public function redirectBack(Transaction $record): void
     {
         if ($record->status === 'success') {
             redirect()->route('filament.admin.shop.resources.purchases.index');
@@ -74,65 +66,33 @@ class PaymentPage extends Page implements HasForms
     public function getFormSchema(): array
     {
         return [
-            Split::make([
-                Section::make([
-                    Placeholder::make('orders')
-                        ->label('')
-                        ->content(new HtmlString(
-                            view('filament.pages.shop.purchase.detail', [
-                                'record' => $this->record,
-                            ])->render()
-                        )),
-                ]),
+            Card::make([
+                Placeholder::make('orders')
+                    ->label('')
+                    ->content(new HtmlString(
+                        view('filament.pages.shop.purchase.detail', [
+                            'record' => $this->record,
+                        ])->render()
+                    )),
+                Radio::make('payment_method')
+                    ->label('Metode Pembayaran')
+                    ->options([
+                        'cash' => 'Tunai',
+                        'online' => 'Transfer',
+                    ])
+                    ->default($this->data['payment_method'])
+                    ->reactive()
+                    ->afterStateUpdated(function ($state) {
+                        $this->paymentMethod($state);
+                    })
+                    ->inline(),
 
-                Section::make([
-                    Placeholder::make('orders')
-                        ->label('')
-                        ->content(new HtmlString(
-                            view('filament.pages.shop.purchase.head')->render()
-                        )),
-
-                    TextInput::make('cash')
-                        ->label('Pembayaran')
-                        ->prefix('Rp.')
-                        ->placeholder('Masukkan nominal')
-                        ->inputMode('decimal')
-                        ->visible(fn($get) => $get('payment_method') === 'cash')
-                        ->extraAttributes([
-                            'x-data' => '{}',
-                            'x-init' => <<<JS
-                                \$el.addEventListener('input', function(e) {
-                                    let value = e.target.value.replace(/[^\\d]/g, '');
-                                    value = new Intl.NumberFormat('id-ID').format(value);
-                                    e.target.value = value;
-                                });
-                            JS,
-                            'class' => 'py-2 w-full rounded-lg',
-                            'style' => 'font-size: 3rem; font-weight: bold;',
-                        ]),
-
-                    Radio::make('payment_method')
-                        ->label('Metode Pembayaran')
-                        ->options([
-                            'cash' => 'Tunai',
-                            'online' => 'Transfer',
-                        ])
-                        ->default($this->data['payment_method'])
-                        ->reactive()
-                        ->afterStateUpdated(function ($state) {
-                            $this->paymentMethod($state);
-                        })
-                        ->inline(),
-
-                    Placeholder::make('orders')
-                        ->label('')
-                        ->content(new HtmlString(
-                            view('filament.pages.shop.purchase.submit', [
-                                'method' => $this->data['payment_method'],
-                            ])->render()
-                        )),
-                ]),
-            ])->from('md')
+                Placeholder::make('orders')
+                    ->label('')
+                    ->content(new HtmlString(
+                        view('filament.pages.shop.purchase.submit')->render()
+                    )),
+            ]),
         ];
     }
 
@@ -152,133 +112,33 @@ class PaymentPage extends Page implements HasForms
 
     public function processPayment(): mixed
     {
-        if ($this->data['payment_method'] !== 'cash') {
-            return null;
-        }
+        try {
+            $this->record->update([
+                'status' => 'success',
+                'payment_method' => $this->data['payment_method'],
+                'transaction_date' => now(),
+            ]);
 
-        $cash = (int) str_replace('.', '', $this->data['cash'] ?? '');
-        $total = $this->record->total_amount;
-
-        if (empty($cash)) {
             Notification::make()
-                ->title('Silakan masukkan jumlah pembayaran')
-                ->danger()
+                ->title('Pembelian berhasil')
+                ->body("Pembelian berhasil untuk invoice #{$this->record->invoice}")
+                ->success()
                 ->send();
-            return null;
-        }
 
-        if ($cash !== $total) {
+            return redirect()->route('filament.admin.shop.resources.purchases.index');
+        } catch (\Throwable $e) {
+            Log::error('Gagal memproses Pembelian', [
+                'invoice' => $this->record->invoice ?? null,
+                'error' => $e->getMessage(),
+            ]);
+
             Notification::make()
-                ->title('Jumlah pembayaran tidak sesuai')
-                ->body("Jumlah uang harus pas: Rp" . number_format($total, 0, ',', '.'))
+                ->title('Terjadi kesalahan saat memproses Pembelian')
                 ->danger()
                 ->persistent()
                 ->send();
+
             return null;
         }
-
-        $this->record->update([
-            'status' => 'success',
-            'payment_method' => 'cash'
-        ]);
-
-        Notification::make()
-            ->title('Pembayaran berhasil')
-            ->body("Pembayaran berhasil untuk invoice #{$this->record->invoice}")
-            ->success()
-            ->send();
-
-        return redirect()->route('print.purchase', $this->record->invoice);
-    }
-
-    public function paymentOnline(): void
-    {
-        MidtransConfig::$serverKey = config('midtrans.server_key');
-        MidtransConfig::$isProduction = config('midtrans.is_production');
-        MidtransConfig::$isSanitized = true;
-        MidtransConfig::$is3ds = true;
-
-        $orderId = $this->record->invoice;
-        $grossAmount = $this->record->total_amount;
-
-        $params = [
-            'transaction_details' => [
-                'order_id' => $orderId,
-                'gross_amount' => $grossAmount,
-            ],
-            'customer_details' => [
-                'first_name' => $this->record->customer->name ?? 'Pelanggan umum',
-                'phone' => $this->record->customer->phone ?? '08xxxxx',
-            ],
-        ];
-
-
-        try {
-            $snapToken = Snap::getSnapToken($params);
-
-            $this->record->update([
-                'payment_link' => $snapToken,
-            ]);
-
-            $this->dispatch('paying', snapToken: $snapToken);
-        } catch (\Exception $e) {
-            Log::error('Midtrans Snap Error: ' . $e->getMessage());
-
-            Notification::make()
-                ->title('Gagal Membuat Pembayaran')
-                ->body($e->getMessage())
-                ->danger()
-                ->send();
-        }
-    }
-
-    public function handlePaymentStatus(array $result): void
-    {
-        $status = $result['transaction_status'] ?? 'pending';
-
-        $updateData = ['status' => $status];
-
-        // Additional data to store from Midtrans response
-        if (isset($result['payment_type'])) {
-            $updateData['payment_method'] = $result['payment_type'];
-        }
-        if (isset($result['transaction_time'])) {
-            $updateData['paid_at'] = $result['transaction_time'];
-        }
-
-        $this->record->update($updateData);
-
-        $notification = match ($status) {
-            'settlement' => Notification::make()
-                ->title('Pembayaran Berhasil')
-                ->body('Invoice #' . $this->record->invoice . ' telah dibayar')
-                ->success(),
-
-            'pending' => Notification::make()
-                ->title('Menunggu Pembayaran')
-                ->body('Silakan selesaikan pembayaran untuk invoice #' . $this->record->invoice)
-                ->warning(),
-
-            'expire' => Notification::make()
-                ->title('Pembayaran Kadaluarsa')
-                ->body('Invoice #' . $this->record->invoice . ' telah kadaluarsa')
-                ->danger(),
-
-            default => Notification::make()
-                ->title('Status Pembayaran: ' . ucfirst($status))
-                ->body('Invoice #' . $this->record->invoice)
-                ->info()
-        };
-
-        $notification->send();
-    }
-
-    public function handlePopupClosed(): void
-    {
-        Notification::make()
-            ->title('Pembayaran Dibatalkan')
-            ->body('Anda menutup popup pembayaran sebelum menyelesaikan')
-            ->warning()
-            ->send();
     }
 }

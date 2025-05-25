@@ -42,9 +42,9 @@ class Product extends Model
         return $this->hasOne(StockTotal::class);
     }
 
-    public function transactionDetails()
+    public function saleDetails()
     {
-        return $this->hasMany(TransactionDetail::class);
+        return $this->hasMany(SaleDetail::class);
     }
 
     public function carts()
@@ -66,23 +66,23 @@ class Product extends Model
             : 0;
     }
 
-    protected function image(): Attribute
-    {
-        return Attribute::make(
-            get: function ($image) {
-                if ($image) {
-                    return asset('/storage/' . $image);
-                }
+    // protected function image(): Attribute
+    // {
+    //     return Attribute::make(
+    //         get: function ($image) {
+    //             if ($image) {
+    //                 return asset('/storage/' . $image);
+    //             }
 
-                // Render Blade Icon as SVG
-                $svgFallback = Blade::render('<x-heroicon-o-photo class="w-36 h-36" />');
+    //             // Render Blade Icon as SVG
+    //             $svgFallback = Blade::render('<x-heroicon-o-photo class="w-36 h-36" />');
 
-                // Encode jadi data URI
-                $base64 = 'data:image/svg+xml;base64,' . base64_encode($svgFallback);
+    //             // Encode jadi data URI
+    //             $base64 = 'data:image/svg+xml;base64,' . base64_encode($svgFallback);
 
-                return $base64;
-            },
-            set: fn($image) => $image,
-        );
-    }
+    //             return $base64;
+    //         },
+    //         set: fn($image) => $image,
+    //     );
+    // }
 }

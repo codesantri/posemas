@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Purchase;
+use App\Models\Sale;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 

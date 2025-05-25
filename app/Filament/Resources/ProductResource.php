@@ -10,7 +10,10 @@ use Filament\Tables\Table;
 use Filament\Resources\Resource;
 use Filament\Forms\Components\Card;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\FileUpload;
 use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\ProductResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -29,25 +32,25 @@ class ProductResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('name')
+                TextInput::make('name')
                     ->label('Nama Produk')
                     ->required()
                     ->maxLength(255),
 
-                Forms\Components\Select::make('category_id')
+                Select::make('category_id')
                     ->label('Kategori')
                     ->relationship('category', 'name')
                     ->required()
                     ->rules(['exists:categories,id']),
 
                 Grid::make(3)->schema([
-                    Forms\Components\Select::make('type_id')
+                    Select::make('type_id')
                         ->label('Jenis')
                         ->relationship('type', 'name')
                         ->required()
                         ->rules(['exists:types,id']),
 
-                    Forms\Components\Select::make('karat_id')
+                    Select::make('karat_id')
                         ->label('Karat-Kadar')
                         ->options(function () {
                             return \App\Models\Karat::all()->mapWithKeys(function ($karat) {
@@ -57,7 +60,7 @@ class ProductResource extends Resource
                         ->required()
                         ->rules(['exists:karats,id']),
 
-                    Forms\Components\TextInput::make('weight')
+                    TextInput::make('weight')
                         ->label('Berat (gram)')
                         ->type('number')
                         ->step(0.01)
@@ -68,10 +71,10 @@ class ProductResource extends Resource
                         ->rules(['numeric', 'min:0.01']),
                 ]),
 
-                Forms\Components\FileUpload::make('image')
+                FileUpload::make('image')
                     ->label('Gambar Produk')
                     ->image()
-                    ->directory('produk')
+                    ->directory('products')
                     ->maxSize(2048)
                     ->imagePreviewHeight('200')
                     ->columnSpanFull()
@@ -154,8 +157,6 @@ class ProductResource extends Resource
         return [
             'index' => Pages\ListProducts::route('/'),
             'view' => Pages\ViewProduct::route('/{record}'),
-            // 'create' => Pages\CreateProduct::route('/create'),
-            // 'edit' => Pages\EditProduct::route('/{record}/edit'),
         ];
     }
 }

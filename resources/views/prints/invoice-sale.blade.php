@@ -1,17 +1,17 @@
 <x-layout-print
-:customer="$invoice->customer->name"
-:address="$invoice->customer->address"
-:created="$invoice->transaction_date"
-:total="$invoice->total_amount"
+:customer="$invoice->sale->customer->name"
+:address="$invoice->sale->customer->address"
+:created="$invoice->sale->transaction_date"
+:total="$invoice->sale->total_amount"
 :type="'Sale'"
 >
     <tbody>
         @php
         $maxRows = 5;
-        $count = $invoice->details->count();
+        $count = $invoice->sale->saleDetails->count();
         @endphp
     
-        @foreach ($invoice->details as $item)
+        @foreach ($invoice->sale->saleDetails as $item)
         <tr class="bg-[#f7f5f3] text-center h-8">
             <td class="border border-[#daa520] px-2 py-1">{{ $item->quantity }}</td>
             <td class="border border-[#daa520] px-2 py-1">

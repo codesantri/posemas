@@ -2,9 +2,9 @@
 
 namespace App\Filament\Clusters\Shop\Resources\SaleResource\Pages;
 
+use App\Models\Sale;
 use Filament\Tables;
 use Filament\Tables\Table;
-use App\Models\Transaction;
 use Filament\Resources\Pages\Page;
 use Filament\Tables\Actions\Action;
 use Filament\Forms\Components\Section;
@@ -41,9 +41,9 @@ class OrdersPage extends Page implements HasTable
                     ->icon('heroicon-m-plus')
                     ->button(),
             ])
-            ->query(Transaction::query()) // 👈 Pastikan query ini sesuai dengan relasi produk
+            ->query(Sale::query()) // 👈 Pastikan query ini sesuai dengan relasi produk
             ->columns([
-                TextColumn::make('invoice')
+                TextColumn::make('transaction.invoice')
                     ->label('Invoice')
                     ->searchable(),
                 TextColumn::make('cash')
@@ -58,7 +58,7 @@ class OrdersPage extends Page implements HasTable
                 TextColumn::make('total_amount')
                     ->money('IDR')
                     ->label('Jumlah'),
-                TextColumn::make('payment_method')
+                TextColumn::make('transaction.payment_method')
                     ->label('Pembayaran')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
@@ -72,7 +72,7 @@ class OrdersPage extends Page implements HasTable
                         default => ucfirst($state),
                     }),
 
-                TextColumn::make('status')
+                TextColumn::make('transaction.status')
                     ->label('Status')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
@@ -99,34 +99,47 @@ class OrdersPage extends Page implements HasTable
                     ->label('Proses Pembayaran')
                     ->icon('heroicon-m-credit-card')
                     ->color('success')
-                    ->visible(fn($record) => $record->status === 'pending')
+                    ->visible(fn($record) => $record->transaction->status === 'pending')
                     ->requiresConfirmation()
                     ->modalHeading('Proses Pembayaran')
                     ->modalDescription('Apakah kamu yakin mau proses pembayaran untuk pesanan ini?')
                     ->modalButton('Ya, Proses Pembayaran')
                     ->action(function ($record, $data) {
-                        return redirect()->route('filament.admin.shop.resources.sales.checkout', $record->invoice);
+                        return redirect()->route('filament.admin.shop.resources.sales.checkout', $record->transaction->invoice);
                     })
                     ->link(),
+                // Action::make('payment')
+                //     ->label('Proses Pembayaran')
+                //     ->icon('heroicon-m-credit-card')
+                //     ->color('success')
+                //     ->visible(fn($record) => $record->transaction->status === 'pending')
+                //     ->requiresConfirmation()
+                //     ->modalHeading('Proses Pembayaran')
+                //     ->modalDescription('Apakah kamu yakin mau proses pembayaran untuk pesanan ini?')
+                //     ->modalButton('Ya, Proses Pembayaran')
+                //     ->action(function ($record, $data) {
+                //         return redirect()->to($record->transaction->payment_link);
+                //     })
+                //     ->link(),
                 Action::make('print')
                     ->label('Cetak Nota')
                     ->icon('heroicon-m-printer')
                     ->color('danger')
-                    ->visible(fn($record) => $record->status === 'success')
+                    ->visible(fn($record) => $record->transaction->status === 'success')
                     ->requiresConfirmation()
                     ->modalHeading('Cetak Nota')
                     ->modalDescription('Apakah kamu yakin mau cetak nota untuk pesanan ini?')
                     ->modalButton('Ya, Cetak')
                     ->action(function ($record, $data) {
-                        return redirect()->route('print.sale', $record->invoice);
+                        return redirect()->route('print.sale', $record->transaction->invoice);
                     })
                     ->link(),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                // Tables\Actions\BulkActionGroup::make([
+                //     Tables\Actions\DeleteBulkAction::make(),
+                // ]),
             ]);
     }
 }

@@ -15,4 +15,9 @@ class Category extends Model
     {
         return $this->hasMany(Product::class);
     }
+
+    public function pawningDetails()
+    {
+        return $this->hasMany(PawningDetail::class);
+    }
 }

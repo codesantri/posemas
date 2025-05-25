@@ -2,64 +2,98 @@
 
 namespace App\Http\Controllers;
 
-use Midtrans\Notification;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
-use App\Models\Purchase;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Routing\Controller;
 
 class PaymentNotificationController extends Controller
 {
-    public function purchaseNotification(Request $request, $inv)
+    public function __invoke(Request $request)
     {
-        // Cari purchase berdasarkan invoice
-        $purchase = Purchase::where('invoice', $inv)->first();
-
-        if (!$purchase) {
-            return response()->json(['message' => 'Invoice not found'], 404);
-        }
-
         try {
-            $notif = new Notification();
-            $transaction = $notif->transaction_status ?? 'pending';
-            $type = $notif->payment_type ?? null;
-            $fraud = $notif->fraud_status ?? null;
-            switch ($transaction) {
-                case 'capture':
-                    if ($type === 'credit_card') {
-                        if ($fraud === 'challenge') {
-                            $purchase->status = 'pending';
-                        } else {
-                            $purchase->status = 'success';
-                        }
-                    }
-                    break;
+            $payload = $request->all();
+            Log::info('Midtrans Notification Received', $payload);
 
+            $orderId = $payload['order_id'] ?? null;
+            $statusCode = $payload['status_code'] ?? null;
+            $grossAmount = $payload['gross_amount'] ?? null;
+            $signatureKey = $payload['signature_key'] ?? null;
+
+            if (!$orderId || !$statusCode || !$grossAmount || !$signatureKey) {
+                Log::warning('Invalid payload received', $payload);
+                return response()->json(['message' => 'Invalid payload'], 400);
+            }
+
+            $serverKey = config('midtrans.server_key');
+            $validSignature = hash('sha512', $orderId . $statusCode . $grossAmount . $serverKey);
+
+            if ($signatureKey !== $validSignature) {
+                Log::error('Signature mismatch', [
+                    'expected' => $validSignature,
+                    'received' => $signatureKey,
+                    'order_id' => $orderId,
+                ]);
+                return response()->json(['message' => 'Invalid signature'], 403);
+            }
+
+            $transaction = Transaction::where('invoice', $orderId)->first();
+
+            if (!$transaction) {
+                Log::error('Transaction not found for order_id: ' . $orderId);
+                return response()->json(['message' => 'Transaction not found'], 404);
+            }
+
+            $status = $payload['transaction_status'] ?? 'unknown';
+            $transactionTime = $payload['transaction_time'] ?? now();
+
+            Log::info("Processing transaction status update", [
+                'order_id' => $orderId,
+                'status' => $status,
+                'transaction_time' => $transactionTime,
+            ]);
+
+            switch ($status) {
                 case 'settlement':
-                    $purchase->status = 'success';
+                case 'capture':
+                    $transaction->status = 'success';
                     break;
 
                 case 'pending':
-                    $purchase->status = 'pending';
+                    $transaction->status = 'pending';
                     break;
 
-                case 'deny':
                 case 'expire':
+                    $transaction->status = 'expired';
+                    break;
+
                 case 'cancel':
-                    $purchase->status = 'failed';
+                case 'deny':
+                    $transaction->status = 'failed';
                     break;
 
                 default:
-                    $purchase->status = 'pending';
+                    Log::warning('Unknown transaction status received: ' . $status);
+                    $transaction->status = 'pending'; // fallback
                     break;
             }
 
-            $purchase->save();
+            $transaction->transaction_date = $transactionTime;
+            $transaction->save();
 
-            return response()->json(['message' => 'Purchase updated', 'status' => $purchase->status]);
+            Log::info("Transaction updated successfully", [
+                'invoice' => $transaction->invoice,
+                'status' => $transaction->status
+            ]);
+
+            return response()->json(['message' => 'Transaction updated successfully']);
         } catch (\Exception $e) {
-            Log::error('Midtrans Purchase Notification Error: ' . $e->getMessage());
+            Log::error('Payment notification error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
 
-            return response()->json(['message' => 'Error processing notification'], 500);
+            return response()->json(['message' => 'Internal Server Error'], 500);
         }
     }
 }

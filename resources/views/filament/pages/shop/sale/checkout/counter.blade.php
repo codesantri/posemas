@@ -3,7 +3,7 @@
     .input-money {
     font-size: 24px;
     font-weight: bold;
-    /* text-align: right; */
+    text-align: right;
     padding-right: 1rem;
     color: #f97e03 !important;
     }
@@ -33,7 +33,6 @@
         }
     });
 
-// Handle blur event to ensure proper formatting
         const audio = new Audio('/keyboard.wav');
         el.addEventListener('keyup', (e) => {
             const raw = e.target.value.replace(/[^\d]/g, '');
@@ -48,28 +47,26 @@
 @endpush
 {{-- {{ dd($payment) }} --}}
 <!-- Nominal Pembayaran -->
-@if($payment_method === 'cash')
 <div class="w-full my-4">
     <label for="cash" class="block text-sm font-medium mb-2">
         Nominal Pembayaran
     </label>
     <x-filament::input.wrapper prefix="Rp" :valid="! $errors->has('cash')" wire:ignore>
-        <x-filament::input id="cash" name="cash" type="text" inputmode="numeric" wire:model.live="cash" x-data
+        <x-filament::input id="cash" maxlength="18" minlength="1" name="cash" type="text" inputmode="numeric" wire:model.live="cash" x-data
             x-money="cash" class="input-money w-full rounded-lg" required autofocus />
     </x-filament::input.wrapper>
     @error('cash')
     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
     @enderror
 </div>
-@endif
-<!-- Diskon -->
 <div class="w-full my-4">
     <label for="discount" class="block text-sm font-medium mb-2">
         Diskon
     </label>
+    
 
     <x-filament::input.wrapper prefix="Rp" :valid="! $errors->has('discount')">
-        <x-filament::input id="discount" name="discount" wire:ignore type="text" inputmode="numeric" wire:model.live="discount" x-data
+        <x-filament::input id="discount" maxlength="18" minlength="1" name="discount" wire:ignore type="text" inputmode="numeric" wire:model.live="discount" x-data
             x-money="discount" class="input-money w-full rounded-lg" />
     </x-filament::input.wrapper>
 

@@ -3,7 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Purchase;
-use App\Models\Transaction;
+use App\Models\Sale;        
 use Filament\Support\Enums\IconPosition;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
@@ -12,7 +12,7 @@ class ResultWidget extends BaseWidget
 {
     protected function getStats(): array
     {
-        $sale = Transaction::all();
+        $sale = Sale::all();
         $purchase = Purchase::all();
 
         return [

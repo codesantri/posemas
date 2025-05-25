@@ -5,8 +5,12 @@
             @foreach($state->details as $item)
             <li class="flex items-center justify-between space-x-4">
                 <div class="flex items-center justify-between space-x-4">
-                    <img alt="{{ $item->product->name }}" class="w-24 h-24 rounded border object-cover flex-shrink-0"
+                    {{-- @if ($item->product->name)
+                    <img alt="{{ asset('storage/'.$item->product->image) }}" class="w-24 h-24 rounded border object-cover flex-shrink-0"
                         height="85" src="{{ $item->product->image }}" width="85" />
+                    @else
+                        <x-heroicon-o-photo class="w-36 h-36 text-gray-400" />
+                    @endif --}}
                     <div class="flex-1 min-w-0 mx-3">
                         <p class="font-semibold text-sm truncate mb-2">
                             {{ $item->product->name ?? 'Produk tidak ditemukan' }}

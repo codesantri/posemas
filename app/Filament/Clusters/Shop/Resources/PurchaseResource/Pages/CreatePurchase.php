@@ -3,12 +3,13 @@
 namespace App\Filament\Clusters\Shop\Resources\PurchaseResource\Pages;
 
 use App\Models\Stock;
-use Filament\Actions\Action;
 use App\Models\Product;
+use App\Models\Transaction;
 use App\Models\StockTotal;
 use Illuminate\Support\Facades\Auth;
-use Filament\Resources\Pages\CreateRecord;
 use App\Filament\Clusters\Shop\Resources\PurchaseResource;
+use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Support\Facades\Log;
 
 class CreatePurchase extends CreateRecord
 {
@@ -19,42 +20,36 @@ class CreatePurchase extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-
-        $data['user_id'] = Auth::id(); // Set the current user
-        $data['purchase_date'] = now();
-
-        // Initialize totals
         $totalAmount = 0;
+        $this->processedProducts = [];
 
-        // Process each product
+        // Proses produk
         foreach ($data['products'] as $productInput) {
-            $product = Product::firstOrCreate(
-                [
-                    'name' => $productInput['product_name'],
-                    'karat_id' => $productInput['karat_id'],
-                    'category_id' => $productInput['category_id'],
-                    'type_id' => $productInput['type_id'],
-                    'weight' => $productInput['weight'],
-                ]
-            );
+            $product = Product::firstOrCreate([
+                'name' => $productInput['product_name'],
+                'karat_id' => $productInput['karat_id'],
+                'category_id' => $productInput['category_id'],
+                'type_id' => $productInput['type_id'],
+                'weight' => $productInput['weight'],
+            ]);
 
             $buyPrice = $product->karat->buy_price ?? 0;
-            $weight = $product->weight;
-            $quantity = $productInput['quantity'];
-            $subtotal = $buyPrice * $weight * $quantity; // Fixed calculation to include quantity
+            $weight = $product->weight ?? 0;
+            $quantity = $productInput['quantity'] ?? 0;
+            $subtotal = $buyPrice * $weight * $quantity;
             $totalAmount += $subtotal;
 
             $this->processedProducts[] = [
                 'product_id' => $product->id,
                 'quantity' => $quantity,
                 'buy_price' => $buyPrice,
-                'weight' => $weight, // Removed extra space in 'weight ' key
+                'weight' => $weight,
                 'subtotal' => $subtotal,
             ];
 
-            // Update stock
+            // Tambah stok
             $stockTotal = StockTotal::firstOrNew(['product_id' => $product->id]);
-            $stockTotal->total += $quantity;
+            $stockTotal->total = ($stockTotal->total ?? 0) + $quantity;
             $stockTotal->save();
 
             Stock::create([
@@ -64,10 +59,22 @@ class CreatePurchase extends CreateRecord
             ]);
         }
 
+        // Buat transaction terlebih dahulu
+        $transaction = Transaction::create([
+            'transaction_type' => 'purchase',
+            'payment_method' => 'cash', // bisa disesuaikan dari form
+            'status' => 'pending',
+            'transaction_date' => now(),
+            'total_amount' => $totalAmount,
+        ]);
+
+        // Lengkapi data purchase
+        $data['user_id'] = Auth::id();
+        $data['transaction_id'] = $transaction->id;
+        $data['purchase_date'] = now();
         $data['total_amount'] = $totalAmount;
 
-        // Remove products from main data as we'll handle them in afterCreate
-        unset($data['products']);
+        unset($data['products']); // kita proses sendiri di afterCreate
 
         return $data;
     }
@@ -76,12 +83,8 @@ class CreatePurchase extends CreateRecord
     {
         $totalAmount = 0;
 
-        // Save purchase details using the processed products data
         foreach ($this->processedProducts as $productDetail) {
-            $product = Product::with('karat')->find($productDetail['product_id']);
-
-            // Create purchase detail record
-            $purchaseDetail = $this->record->purchaseDetails()->create([
+            $this->record->purchaseDetails()->create([
                 'product_id' => $productDetail['product_id'],
                 'quantity' => $productDetail['quantity'],
                 'buy_price' => $productDetail['buy_price'],
@@ -89,21 +92,27 @@ class CreatePurchase extends CreateRecord
                 'subtotal' => $productDetail['subtotal'],
             ]);
 
-            // Accumulate total amount
-            $totalAmount += $purchaseDetail->subtotal;
+            $totalAmount += $productDetail['subtotal'];
         }
 
-        // Update the purchase total_amount if there's any discrepancy
-        if ($this->record->total_amount != $totalAmount) {
-            $this->record->update([
-                'total_amount' => $totalAmount,
-            ]);
+        // Update ulang total_amount di purchases jika berbeda
+        if ((int)$this->record->total_amount !== $totalAmount) {
+            $this->record->update(['total_amount' => $totalAmount]);
         }
+
+        // Sinkronkan juga ke transaksi
+        $this->record->transaction->update(['total_amount' => $totalAmount]);
+
+        Log::info('Purchase berhasil dibuat dan disinkronkan', [
+            'purchase_id' => $this->record->id,
+            'transaction_id' => $this->record->transaction_id,
+            'total' => $totalAmount,
+        ]);
     }
 
     protected function getRedirectUrl(): string
     {
-        return $this->getResource()::getUrl('payment', [$this->record->invoice]);
+        return $this->getResource()::getUrl('payment', [$this->record->transaction->invoice]);
     }
 
     public static function canCreateAnother(): bool
@@ -111,11 +120,9 @@ class CreatePurchase extends CreateRecord
         return false;
     }
 
-    protected function getCreateFormAction(): Action
+    protected function getCreateFormAction(): \Filament\Actions\Action
     {
         return parent::getCreateFormAction()
-            ->label('Simpan & Proses Pembayaran')
-            ->extraAttributes(['style' => 'float: right'])
-            ->color('success');
+            ->label('Simpan & Proses Pembelian')->icon('heroicon-m-credit-card');
     }
 }

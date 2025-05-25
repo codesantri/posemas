@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('customers', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('nik')->unique();
             $table->string('phone')->unique();
             $table->string('address');
             $table->timestamps();
@@ -71,7 +70,7 @@ return new class extends Migration
 
         Schema::create('stock_totals', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_id')->constrained('products')->OnDelete('cascade');
+            $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
             $table->integer('total')->default(0);
             $table->timestamps();
         });
@@ -102,26 +101,33 @@ return new class extends Migration
             $table->bigInteger('subtotal')->default(0);
             $table->timestamps();
         });
-
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('customer_id')->nullable()->constrained('customers')->onDelete('cascade');
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->string('invoice')->unique();
-            $table->bigInteger('total_amount');
-            $table->bigInteger('cash')->default(0);
-            $table->bigInteger('change')->default(0);
-            $table->bigInteger('discount')->default(0);
+            $table->enum('transaction_type', ['sale', 'purchase', 'pawning', 'change']);
             $table->enum('payment_method', ['cash', 'online'])->default('cash');
-            $table->string('payment_link_url')->nullable();
-            $table->timestamp('transaction_date')->nullable();
+            $table->string('payment_link')->nullable();
             $table->enum('status', ['pending', 'success', 'expired', 'failed'])->default('pending');
+            $table->dateTime('transaction_date')->nullable();
+            $table->bigInteger('total_amount')->default(0);
             $table->timestamps();
         });
 
-        Schema::create('transaction_details', function (Blueprint $table) {
+        Schema::create('sales', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('transaction_id')->constrained('transactions')->onDelete('cascade');
+            $table->foreignId('customer_id')->nullable()->constrained('customers')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('transaction_id')->constrained('transactions')->onDelete('cascade')->onUpdate('cascade');
+            $table->bigInteger('cash')->default(0);
+            $table->bigInteger('change')->default(0);
+            $table->bigInteger('discount')->default(0);
+            $table->bigInteger('total_amount');
+            $table->timestamps();
+        });
+
+        Schema::create('sale_details', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('sale_id')->constrained('sales')->onDelete('cascade');
             $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
             $table->integer('quantity');
             $table->decimal('weight', 15, 2);
@@ -130,18 +136,16 @@ return new class extends Migration
             $table->timestamps();
         });
 
+
         Schema::create('purchases', function (Blueprint $table) {
             $table->id();
-            $table->string('invoice')->unique();
             $table->foreignId('customer_id')->nullable()->constrained('customers')->onDelete('cascade');
+            $table->foreignId('transaction_id')->constrained('transactions')->onDelete('cascade')->onUpdate('cascade');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->enum('payment_method', ['cash', 'online'])->default('cash');
-            $table->string('payment_link')->nullable();
-            $table->enum('status', ['pending', 'success', 'expired', 'failed'])->default('pending');
-            $table->timestamp('purchase_date')->nullable();
-            $table->bigInteger('total_amount');
+            $table->bigInteger('total_amount')->default(0);
             $table->timestamps();
         });
+
 
         Schema::create('purchase_details', function (Blueprint $table) {
             $table->id();
@@ -158,35 +162,40 @@ return new class extends Migration
             $table->id();
             $table->foreignId('customer_id')->constrained('customers')->onDelete('cascade');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('transaction_id')->constrained('transactions')->onDelete('cascade')->onUpdate('cascade');
             $table->date('pawn_date');
-            $table->decimal('total_weight', 10, 2);
-            $table->decimal('estimated_value', 15, 2);
-            $table->decimal('loan_value', 15, 2);
-            $table->decimal('rate', 5, 2); // as percentage
+            $table->bigInteger('estimated_value')->default(0);
+            $table->decimal('rate', 5, 2);
             $table->date('due_date');
-            $table->enum('status', ['active', 'paid_off', 'expired'])->default('active');
+            $table->bigInteger('cash')->default(0);
+            $table->bigInteger('change')->default(0);
+            $table->enum('status', ['pending', 'active', 'paid_off'])->default('pending');
             $table->text('notes')->nullable();
             $table->timestamps();
         });
 
         Schema::create('pawning_details', function (Blueprint $table) {
             $table->id();
+            $table->string('name');
             $table->foreignId('pawning_id')->constrained('pawnings')->onDelete('cascade');
+            $table->foreignId('category_id')->constrained('categories')->onDelete('cascade');
+            $table->foreignId('type_id')->constrained('types')->onDelete('cascade');
             $table->foreignId('karat_id')->constrained('karats')->onDelete('cascade');
-            $table->string('item_name');
             $table->decimal('weight', 10, 2);
-            $table->decimal('estimated_value', 15, 2);
-            $table->string('item_photo')->nullable();
+            $table->integer('quantity');
+            $table->string('image')->nullable();
             $table->timestamps();
         });
 
-        Schema::create('pawning_payments', function (Blueprint $table) {
+        Schema::create('changes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('pawning_id')->constrained('pawnings')->onDelete('cascade');
-            $table->date('payment_date');
-            $table->decimal('amount_paid', 15, 2);
-            $table->enum('payment_type', ['installment', 'full_payment'])->default('installment');
-            $table->text('notes')->nullable();
+            $table->foreignId('customer_id')->constrained('customers')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('transaction_id')->constrained('transactions')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('sale_id')->constrained('sales')->onDelete('cascade');
+            $table->foreignId('purchase_id')->constrained('purchases')->onDelete('cascade');
+            $table->bigInteger('cash')->default(0); // uang yang dibayar customer (kalau tukar kurang)
+            $table->bigInteger('change')->default(0); // kembalian kalau tukar tambah
             $table->timestamps();
         });
     }
@@ -196,11 +205,15 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('pawning_payments');
+        Schema::dropIfExists('changes');
         Schema::dropIfExists('pawning_details');
         Schema::dropIfExists('pawnings');
-        Schema::dropIfExists('transaction_details');
+        Schema::dropIfExists('purchase_details');
+        Schema::dropIfExists('sale_details');
+        Schema::dropIfExists('purchases');
         Schema::dropIfExists('transactions');
+        Schema::dropIfExists('sales');
+        Schema::dropIfExists('carts');
         Schema::dropIfExists('stock_opname_details');
         Schema::dropIfExists('stock_opnames');
         Schema::dropIfExists('stock_totals');

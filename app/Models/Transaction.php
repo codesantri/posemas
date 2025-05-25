@@ -2,29 +2,33 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Transaction extends Model
 {
-    /** @use HasFactory<\Database\Factories\TransactionFactory> */
-    use HasFactory;
     protected $guarded = [''];
 
-    public function customer()
+
+    public function sale()
     {
-        return $this->belongsTo(Customer::class);
+        return $this->hasOne(Sale::class);
     }
 
-    public function user()
+    public function purchase()
     {
-        return $this->belongsTo(User::class);
+        return $this->hasOne(Purchase::class);
     }
 
-    public function details()
+    public function pawning()
     {
-        return $this->hasMany(TransactionDetail::class);
+        return $this->hasOne(Pawning::class);
     }
+
+    public function change()
+    {
+        return $this->hasOne(Change::class);
+    }
+
 
     public function getRouteKeyName()
     {
@@ -35,8 +39,16 @@ class Transaction extends Model
     {
         static::creating(function ($transaction) {
             if (!$transaction->invoice) {
-                $latestId = static::max('id') + 1;
-                $transaction->invoice = 'INV-' . now()->format('Ymd') . '-' . str_pad($latestId, 3, '0', STR_PAD_LEFT);
+                $today = now()->format('Ymd');
+                $countToday = static::whereDate('created_at', now()->toDateString())->count() + 1;
+                $prefixMap = [
+                    'sale'     => 'SL',
+                    'purchase' => 'PCS',
+                    'pawning'  => 'PW',
+                    'change'   => 'CHG',
+                ];
+                $prefix = $prefixMap[$transaction->transaction_type] ?? 'TRX';
+                $transaction->invoice = $prefix . $today . str_pad($countToday, 3, '0', STR_PAD_LEFT);
             }
         });
     }

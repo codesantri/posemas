@@ -67,8 +67,10 @@ class SaleResource extends Resource
         return [
             'index' => Pages\ListSales::route('/'),
             'cart' => Pages\CartPage::route('/cart'),
-            'checkout' => Pages\CheckoutPage::route('/checkout/{inv}'),
             'orders' => Pages\OrdersPage::route('/orders'),
+            'checkout' => Pages\CheckoutPage::route('/checkout/{inv}'),
+            'paying' => Pages\PayingPage::route('/paying/{inv}'),
+
         ];
     }
 

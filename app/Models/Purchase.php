@@ -27,18 +27,10 @@ class Purchase extends Model
         return $this->hasMany(PurchaseDetail::class);
     }
 
-    protected static function booted()
-    {
-        static::creating(function ($purchase) {
-            if (!$purchase->invoice) {
-                $latestId = static::max('id') + 1;
-                $purchase->invoice = 'INV-' . now()->format('Ymd') . '-' . str_pad($latestId, 3, '0', STR_PAD_LEFT);
-            }
-        });
-    }
+ 
 
-    public function getRouteKeyName()
+    public function transaction()
     {
-        return 'invoice';
+        return $this->belongsTo(Transaction::class);
     }
 }

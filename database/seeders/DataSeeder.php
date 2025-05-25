@@ -16,7 +16,6 @@ class DataSeeder extends Seeder
         DB::table('customers')->insert([
             [
                 'name' => 'Andi Saputra',
-                'nik' => '3201012001990001',
                 'address' => 'Jl. Kenanga No.5, Jakarta',
                 'phone' => '081234567890',
                 'created_at' => now(),
@@ -24,7 +23,6 @@ class DataSeeder extends Seeder
             ],
             [
                 'name' => 'Siti Aminah',
-                'nik' => '3201023002880002',
                 'address' => 'Jl. Melati No.3, Bandung',
                 'phone' => '081298765432',
                 'created_at' => now(),
@@ -32,7 +30,6 @@ class DataSeeder extends Seeder
             ],
             [
                 'name' => 'Budi Santoso',
-                'nik' => '3201031503770003',
                 'address' => 'Jl. Anggrek No.7, Surabaya',
                 'phone' => '081345678901',
                 'created_at' => now(),

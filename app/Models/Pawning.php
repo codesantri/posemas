@@ -26,8 +26,8 @@ class Pawning extends Model
         return $this->hasMany(PawningDetail::class);
     }
 
-    public function payments()
+    public function transaction()
     {
-        return $this->hasMany(PawningPayment::class);
+        return $this->belongsTo(Transaction::class);
     }
 }
