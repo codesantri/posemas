@@ -25,6 +25,7 @@ class PaymentPage extends Page implements HasForms
     protected static ?string $breadcrumb = 'Invoice';
 
     public Transaction $record;
+    public ?string $invoice = null;
     public ?array $data = [];
 
 
@@ -40,9 +41,9 @@ class PaymentPage extends Page implements HasForms
         $this->form->fill();
     }
 
-    public function loadPage(string $invoice): void
+    public function loadPage(string $inv): void
     {
-        $this->record = Transaction::where('invoice', $invoice)->first();
+        $this->record = Transaction::where('invoice', $inv)->first();
         $this->redirectBack($this->record);
 
         $this->record->status = 'success';
@@ -67,27 +68,26 @@ class PaymentPage extends Page implements HasForms
     {
         return [
             Card::make([
-                Placeholder::make('orders')
+                Placeholder::make('order_details') // ← ubah dari 'orders'
                     ->label('')
                     ->content(new HtmlString(
                         view('filament.pages.shop.purchase.detail', [
                             'record' => $this->record,
                         ])->render()
                     )),
+
                 Radio::make('payment_method')
                     ->label('Metode Pembayaran')
                     ->options([
                         'cash' => 'Tunai',
                         'online' => 'Transfer',
                     ])
-                    ->default($this->data['payment_method'])
+                    ->default($this->data['payment_method'] ?? 'cash') // safe default
                     ->reactive()
-                    ->afterStateUpdated(function ($state) {
-                        $this->paymentMethod($state);
-                    })
+                    ->afterStateUpdated(fn($state) => $this->paymentMethod($state))
                     ->inline(),
 
-                Placeholder::make('orders')
+                Placeholder::make('order_submit') // ← ubah dari 'orders'
                     ->label('')
                     ->content(new HtmlString(
                         view('filament.pages.shop.purchase.submit')->render()

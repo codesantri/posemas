@@ -11,7 +11,7 @@ class PrinterController extends Controller
 {
     public function printInvoicePurchase($inv)
     {
-        $invoice = Purchase::where('invoice', $inv)->first();
+        $invoice = Transaction::where('invoice', $inv)->first();
         // dd($invoice);
         return view('prints.invoice-purchase', ['invoice' => $invoice]);
     }

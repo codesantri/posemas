@@ -252,7 +252,7 @@ class PurchaseResource extends Resource
                     ->modalDescription('Apakah kamu yakin mau cetak nota untuk pesanan ini?')
                     ->modalButton('Ya, Cetak')
                     ->action(function ($record, $data) {
-                        return redirect()->route('print.sale', $record->transaction->invoice);
+                        return redirect()->route('print.purchase', $record->transaction->invoice);
                     })
                     ->link(),
                 // ->url(fn($record) => Pages\InvoicePurchase::getUrl([$record]))
@@ -276,7 +276,7 @@ class PurchaseResource extends Resource
         return [
             'index' => Pages\ListPurchases::route('/'),
             'create' => Pages\CreatePurchase::route('/create'),
-            'payment' => Pages\PaymentPage::route('/payment/{inv}'),
+            'payment' => Pages\PaymentPage::route('/payment/{invoice}'),
             // 'view' => Pages\ViewPurchase::route('/{record}'),
             // 'edit' => Pages\EditPurchase::route('/{record}/edit'),
         ];

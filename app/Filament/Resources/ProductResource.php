@@ -118,6 +118,9 @@ class ProductResource extends Resource
                 Tables\Columns\TextColumn::make('weight')
                     ->numeric()
                     ->label('Berat (gram)'),
+                Tables\Columns\TextColumn::make('stockTotals.total')
+                    ->numeric()
+                    ->label('Jumlah'),
                 // Tables\Columns\TextColumn::make('harga_modal')
                 //     ->label('Harga Modal')
                 //     ->formatStateUsing(fn($state, $record) => 'Rp ' . number_format($record->harga_modal, 0, ',', '.')),

@@ -262,29 +262,29 @@ class PawningResource extends Resource
             ])
             ->filters([
                 // Bulan Transaksi
-                SelectFilter::make('transaction_month')
-                    ->label('Bulan Transaksi')
-                    ->options([
-                        '01' => 'Januari',
-                        '02' => 'Februari',
-                        '03' => 'Maret',
-                        '04' => 'April',
-                        '05' => 'Mei',
-                        '06' => 'Juni',
-                        '07' => 'Juli',
-                        '08' => 'Agustus',
-                        '09' => 'September',
-                        '10' => 'Oktober',
-                        '11' => 'November',
-                        '12' => 'Desember',
-                    ])
-                    ->default(now()->format('m'))
-                    ->modifyQueryUsing(function ($query, $state) {
-                        if (! $state) return;
-                        $query->whereHas('transaction', function ($q) use ($state) {
-                            $q->whereMonth('transaction_date', $state);
-                        });
-                    }),
+                // SelectFilter::make('transaction_month')
+                //     ->label('Bulan Transaksi')
+                //     ->options([
+                //         '01' => 'Januari',
+                //         '02' => 'Februari',
+                //         '03' => 'Maret',
+                //         '04' => 'April',
+                //         '05' => 'Mei',
+                //         '06' => 'Juni',
+                //         '07' => 'Juli',
+                //         '08' => 'Agustus',
+                //         '09' => 'September',
+                //         '10' => 'Oktober',
+                //         '11' => 'November',
+                //         '12' => 'Desember',
+                //     ])
+                //     ->default(now()->format('m'))
+                //     ->modifyQueryUsing(function ($query, $state) {
+                //         if (! $state) return;
+                //         $query->whereHas('transaction', function ($q) use ($state) {
+                //             $q->whereMonth('transaction_date', $state);
+                //         });
+                //     }),
 
                 // Kategori Barang
                 // SelectFilter::make('category_id')

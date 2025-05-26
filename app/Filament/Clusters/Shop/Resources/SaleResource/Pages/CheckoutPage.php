@@ -271,6 +271,14 @@ class CheckoutPage extends Page implements HasForms
             'total_amount' => $this->totalPayment,
         ]);
 
+        foreach ($this->sale->saleDetails as $detail) {
+            $product = $detail->product;
+
+            if ($product && $product->stockTotals) {
+                $product->stockTotals->decrement('total', $detail->quantity);
+            }
+        }
+
         Notification::make()
             ->title('Pembayaran Berhasil')
             ->success()

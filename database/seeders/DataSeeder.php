@@ -102,7 +102,7 @@ class DataSeeder extends Seeder
         DB::table('stock_totals')->insert([
             ['product_id' => 1, 'total' => 10, 'created_at' => now(), 'updated_at' => now()],
             ['product_id' => 2, 'total' => 5, 'created_at' => now(), 'updated_at' => now()],
-            ['product_id' => 3, 'total' => 0, 'created_at' => now(), 'updated_at' => now()],
+            ['product_id' => 3, 'total' => 20, 'created_at' => now(), 'updated_at' => now()],
         ]);
 
         // Stocks (Detail stok per pemasok)
