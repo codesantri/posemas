@@ -97,76 +97,30 @@ class PurchaseResource extends Resource
                     Repeater::make('products')
                         ->label('Data Produk')
                         ->schema([
-                            Grid::make(2)->schema([
-                                Select::make('product_name')
-                                    ->label('Nama Produk')
-                                    ->searchable()
-                                    ->options(Product::pluck('name', 'name'))
-                                    ->preload()
-                                    ->required()
-                                    ->createOptionForm([
-                                        TextInput::make('name')
-                                            ->label('Nama Produk')
-                                            ->required()
-                                            ->minLength(3)
-                                            ->maxLength(100)
-                                            ->rule('regex:/^[a-zA-Z0-9\s\-\.]+$/'),
-                                    ])
-                                    ->createOptionUsing(function (array $data) {
-                                        return $data['name'];
-                                    }),
+                            Grid::make(12)
+                                ->schema([
+                                    Select::make('product_id')
+                                        ->label('Nama Produk')
 
-                                Select::make('category_id')
-                                    ->label('Kategori')
-                                    ->options(Category::pluck('name', 'id'))
-                                    ->required()
-                                    ->searchable()
-                                    ->preload()
-                            ]),
+                                        ->searchable()
+                                        ->required()
+                                        ->preload()
+                                        ->options(function () {
+                                            return Product::all()->mapWithKeys(function ($product) {
+                                                return [$product->id => $product->name . ' / ' . $product->karat->karat . '-' . $product->karat->rate . '%' . ' / ' . $product->category->name . ' / ' . $product->type->name];
+                                            });
+                                        })
+                                        ->columnSpan(10), // Lebar 8 dari 12 kolom
 
-                            Grid::make(4)->schema([
-                                Select::make('type_id')
-                                    ->label('Jenis')
-                                    ->required()
-                                    ->options(Type::pluck('name', 'id'))
-                                    ->searchable()
-                                    ->preload(),
+                                    TextInput::make('quantity')
+                                        ->label('Jumlah')
+                                        ->numeric()
+                                        ->default(1)
+                                        ->required()
+                                        ->columnSpan(2), // Lebar 4 dari 12 kolom
+                                ])
 
-                                Select::make('karat_id')
-                                    ->label('Karat-Kadar')
-                                    ->required()
-                                    ->options(Karat::all()->mapWithKeys(fn($karat) => [
-                                        $karat->id => "{$karat->karat} - {$karat->rate}%",
-                                    ]))
-                                    ->searchable()
-                                    ->preload(),
-
-                                TextInput::make('weight')
-                                    ->label('Berat (gram)')
-                                    ->required()
-                                    ->numeric()
-                                    ->step(0.01)
-                                    ->minValue(0.01)
-                                    ->maxValue(10000)
-                                    ->default(0.01)
-                                    ->suffix('Gram'),
-
-                                TextInput::make('quantity')
-                                    ->label('Kuantitas')
-                                    ->required()
-                                    ->numeric()
-                                    ->minValue(1)
-                                    ->maxValue(1000)
-                                    ->step(1)
-                                    ->default(1),
-                            ]),
-                        ])
-                        ->columns(1)
-                        ->minItems(1)
-                        ->collapsible()
-                        ->cloneable()
-                        ->itemLabel(fn(array $state): ?string => $state['product_name'] ?? null)
-                        ->createItemButtonLabel('Tambah'),
+                        ])->addActionLabel('Tambah'),
                 ]),
             ]);
     }

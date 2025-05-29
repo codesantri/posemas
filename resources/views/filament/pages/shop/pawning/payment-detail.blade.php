@@ -16,12 +16,12 @@
 
 <div class="grid grid-cols-2 gap-4 mt-6">
     <div>
-        <p class="text-gray-600">Kalkulasi otomasti oleh Sistem</p>
+        <p class="">Kalkulasi otomasti oleh Sistem</p>
     </div>
 </div>
 
 <table class="w-full text-sm">
-    <thead class="bg-gray-100 text-gray-700">
+    <thead class="">
         <tr>
             <th class="p-2 text-left">Tanggal Gadai</th>
             <th class="p-2 text-left">Jatuh Tempo</th>
@@ -43,7 +43,7 @@
         <tr>
             <td colspan="3" class="p-2  font-bold text-end">JUMLAH Rp.</td>
             <td style="background-color: #000000;" class=" px-1 font-bold text-white text-1xl">{{
-                number_format($record->total_amount, 0, ',', '.') }}</td>
+                number_format($total, 0, ',', '.') }}</td>
         </tr>
     </tfoot>
 </table>

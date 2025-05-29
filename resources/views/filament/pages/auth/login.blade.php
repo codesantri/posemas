@@ -32,7 +32,7 @@
     }
 
     .bg-emas {
-        background-image: url('/IMG_1999.JPG');
+        background-image: url('/bg-login.jpeg');
         background-position: center;
         background-repeat: no-repeat;
         background-size: cover;

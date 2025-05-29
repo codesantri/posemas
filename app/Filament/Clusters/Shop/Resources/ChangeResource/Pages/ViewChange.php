@@ -15,27 +15,17 @@ class ViewChange extends ViewRecord
 {
     protected static string $resource = ChangeResource::class;
 
-    protected function resolveRecord($key): Model
-    {
-        if (is_numeric($key)) {
-            return parent::resolveRecord($key);
-        }
-
-        return static::getModel()::whereHas('transaction', fn($q) => $q->where('invoice', $key))
-            ->firstOrFail();
-    }
-
     public function infolist(Infolist $infolist): Infolist
     {
         return $infolist
             ->schema([
                 Section::make('Informasi Pelanggan')
                     ->schema([
-                        TextEntry::make('customer.name')
+                        TextEntry::make('sale.customer.name')
                             ->label('Nama Pelanggan'),
-                        TextEntry::make('customer.phone')
+                        TextEntry::make('sale.customer.phone')
                             ->label('Nomor Telepon'),
-                        TextEntry::make('customer.address')
+                        TextEntry::make('sale.customer.address')
                             ->label('Alamat')
                             ->columnSpanFull(),
                     ])
@@ -43,17 +33,39 @@ class ViewChange extends ViewRecord
 
                 Section::make('Detail Transaksi')
                     ->schema([
-                        TextEntry::make('transaction.invoice')
+                        TextEntry::make('invoice')
                             ->label('Nomor Invoice'),
-                        TextEntry::make('transaction.created_at')
+                        TextEntry::make('created_at')
                             ->label('Tanggal')
                             ->dateTime(),
-                        TextEntry::make('cash')
+                        TextEntry::make('additional_payment')
                             ->label('Tambahan Pembayaran')
-                            ->money('IDR'),
-                        TextEntry::make('change')
-                            ->label('Kembalian')
-                            ->money('IDR'),
+                            ->money('IDR')
+                            ->state(function ($record) {
+                                $purchase = $record->purchase->total_amount ?? 0;
+                                $sale = $record->sale->total_amount ?? 0;
+                                return max($sale - $purchase, 0); // hanya jika ada kekurangan bayar
+                            })
+                            ->color(function ($record) {
+                                $purchase = $record->purchase->total_amount ?? 0;
+                                $sale = $record->sale->total_amount ?? 0;
+                                return ($sale - $purchase) >= 0 ? 'success' : 'danger';
+                            }),
+
+                        TextEntry::make('change_payment')
+                            ->label('Kembalian Pembayaran')
+                            ->money('IDR')
+                            ->state(function ($record) {
+                                $purchase = $record->purchase->total_amount ?? 0;
+                                $sale = $record->sale->total_amount ?? 0;
+                                return max($purchase - $sale, 0); // hanya jika toko perlu kembalikan uang
+                            })
+                            ->color(function ($record) {
+                                $purchase = $record->purchase->total_amount ?? 0;
+                                $sale = $record->sale->total_amount ?? 0;
+                                return ($purchase - $sale) > 0 ? 'warning' : 'danger';
+                            }),
+
                     ])
                     ->columns(2),
 
@@ -140,7 +152,9 @@ class ViewChange extends ViewRecord
                 ->label('Proses Transaksi')
                 // ->color('')
                 ->icon('heroicon-o-credit-card')
-                ->url(route('filament.admin.shop.resources.changes.index')),
+                ->action(function ($record, $data) {
+                    return redirect()->route('filament.admin.shop.resources.changes.payment', $record->invoice);
+                })
         ];
     }
 }

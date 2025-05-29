@@ -21,4 +21,11 @@ class PrinterController extends Controller
         $invoice = Transaction::where('invoice', $inv)->first();
         return view('prints.invoice-sale', ['invoice' => $invoice]);
     }
+
+    public function printInvoicePawning($inv)
+    {
+
+        $invoice = Transaction::where('invoice', $inv)->first();
+        return view('prints.invoice-pawning', ['invoice' => $invoice]);
+    }
 }

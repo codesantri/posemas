@@ -187,17 +187,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('changes', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('customer_id')->constrained('customers')->onDelete('cascade');
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('transaction_id')->constrained('transactions')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreignId('sale_id')->constrained('sales')->onDelete('cascade');
-            $table->foreignId('purchase_id')->constrained('purchases')->onDelete('cascade');
-            $table->bigInteger('cash')->default(0); // uang yang dibayar customer (kalau tukar kurang)
-            $table->bigInteger('change')->default(0); // kembalian kalau tukar tambah
-            $table->timestamps();
-        });
+       
     }
 
     /**

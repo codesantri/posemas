@@ -4,7 +4,6 @@ namespace App\Filament\Clusters\Shop\Resources\ChangeResource\Pages;
 
 use App\Models\Sale;
 use Filament\Actions;
-use App\Models\Change;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\SaleDetail;
@@ -63,11 +62,6 @@ class CreateChange extends CreateRecord
                         ->default(0.01)
                         ->step(0.01),
 
-                    TextInput::make('quantity')
-                        ->label('Jumlah')
-                        ->numeric()
-                        ->default(1)
-                        ->required(),
 
                     FileUpload::make('image')
                         ->label('Gambar Produk')
@@ -77,21 +71,21 @@ class CreateChange extends CreateRecord
                 ])
                 ->action(function (array $data) {
                     // Ambil quantity
-                    $quantity = $data['quantity'];
-                    unset($data['quantity']);
+                    // $quantity = $data['quantity'];
+                    // unset($data['quantity']);
 
-                    $product = \App\Models\Product::create($data);
+                    Product::create($data);
 
-                    \App\Models\Stock::create([
-                        'product_id' => $product->id,
-                        'stock_quantity' => $quantity,
-                        'received_at' => now(),
-                    ]);
+                    // \App\Models\Stock::create([
+                    //     'product_id' => $product->id,
+                    //     'stock_quantity' => $quantity,
+                    //     'received_at' => now(),
+                    // ]);
 
-                    \App\Models\StockTotal::updateOrCreate(
-                        ['product_id' => $product->id],
-                        ['total' => $quantity]
-                    );
+                    // \App\Models\StockTotal::updateOrCreate(
+                    //     ['product_id' => $product->id],
+                    //     ['total' => $quantity]
+                    // );
 
                     \Filament\Notifications\Notification::make()
                         ->title('Produk berhasil ditambahkan')
@@ -106,19 +100,109 @@ class CreateChange extends CreateRecord
         return false;
     }
 
+    // protected function mutateFormDataBeforeCreate(array $data): array
+    // {
+    //     $totalPurchase = 0;
+    //     $totalSale = 0;
+    //     $olds = [];
+    //     $news = [];
+    //     $allItems = array_merge(
+    //         $data['olds'] ?? [],
+    //         $data['news'] ?? []
+    //     );
+
+    //     // Cek stok untuk semua produk
+    //     foreach ($allItems as $item) {
+    //         $product = Product::find($item['product_id']);
+    //         if (!$product) {
+    //             Notification::make()
+    //                 ->title("Produk dengan ID {$item['product_id']} tidak ditemukan.")
+    //                 ->danger()
+    //                 ->duration(3000)
+    //                 ->send();
+
+    //             throw ValidationException::withMessages([
+    //                 'product' => "Produk dengan ID {$item['product_id']} tidak ditemukan."
+    //             ]);
+    //         }
+
+    //         $stock = StockTotal::where('product_id', $product->id)->first();
+    //         $available = $stock?->total ?? 0;
+    //         $quantity = $item['quantity'] ?? 0;
+
+    //         if ($quantity > $available) {
+    //             Notification::make()
+    //                 ->title("Stok produk '{$product->name}' hanya tersedia {$available}, tidak cukup untuk jumlah {$quantity}.")
+    //                 ->danger()
+    //                 ->duration(3000)
+    //                 ->send();
+
+    //             throw ValidationException::withMessages([
+    //                 'stock' => "Stok produk '{$product->name}' hanya tersedia {$available}."
+    //             ]);
+    //         }
+    //     }
+
+    //     // Kalau lolos cek stok, lanjut hitung total dan siapkan data
+    //     foreach ($data['olds'] as $item) {
+    //         $product = Product::with('karat')->find($item['product_id']);
+    //         if (!$product) continue;
+
+    //         $weight = $product->weight ?? 0;
+    //         $quantity = $item['quantity'] ?? 1;
+    //         $buy_price = $product->karat->buy_price ?? 0;
+    //         $subtotal = $buy_price * $weight * $quantity;
+
+    //         $totalPurchase += $subtotal;
+
+    //         $olds[] = [
+    //             'product_id' => $product->id,
+    //             'quantity' => $quantity,
+    //             'weight' => $weight,
+    //             'buy_price' => $buy_price,
+    //             'subtotal' => $subtotal,
+    //         ];
+    //     }
+
+    //     foreach ($data['news'] as $item) {
+    //         $product = Product::with('karat')->find($item['product_id']);
+    //         if (!$product) continue;
+
+    //         $weight = $product->weight ?? 0;
+    //         $quantity = $item['quantity'] ?? 1;
+    //         $sell_price = $product->karat->sell_price ?? 0;
+    //         $subtotal = $sell_price * $weight * $quantity;
+
+    //         $totalSale += $subtotal;
+
+    //         $news[] = [
+    //             'product_id' => $product->id,
+    //             'quantity' => $quantity,
+    //             'weight' => $weight,
+    //             'sell_price' => $sell_price,
+    //             'subtotal' => $subtotal,
+    //         ];
+    //     }
+
+    //     $difference = $totalSale - $totalPurchase;
+
+    //     $data['total_purchase'] = $totalPurchase;
+    //     $data['total_sale'] = $totalSale;
+    //     $data['olds'] = $olds;
+    //     $data['news'] = $news;
+
+    //     return $data;
+    // }
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $totalPurchase = 0;
         $totalSale = 0;
         $olds = [];
         $news = [];
-        $allItems = array_merge(
-            $data['olds'] ?? [],
-            $data['news'] ?? []
-        );
 
-        // Cek stok untuk semua produk
-        foreach ($allItems as $item) {
+        // Cek stok hanya untuk produk baru (news)
+        foreach ($data['news'] ?? [] as $item) {
             $product = Product::find($item['product_id']);
             if (!$product) {
                 Notification::make()
@@ -149,8 +233,8 @@ class CreateChange extends CreateRecord
             }
         }
 
-        // Kalau lolos cek stok, lanjut hitung total dan siapkan data
-        foreach ($data['olds'] as $item) {
+        // Hitung total dan siapkan data untuk produk lama (olds)
+        foreach ($data['olds'] ?? [] as $item) {
             $product = Product::with('karat')->find($item['product_id']);
             if (!$product) continue;
 
@@ -170,7 +254,8 @@ class CreateChange extends CreateRecord
             ];
         }
 
-        foreach ($data['news'] as $item) {
+        // Hitung total dan siapkan data untuk produk baru (news)
+        foreach ($data['news'] ?? [] as $item) {
             $product = Product::with('karat')->find($item['product_id']);
             if (!$product) continue;
 
@@ -190,17 +275,17 @@ class CreateChange extends CreateRecord
             ];
         }
 
+        // Finalisasi hasil
         $difference = $totalSale - $totalPurchase;
 
         $data['total_purchase'] = $totalPurchase;
         $data['total_sale'] = $totalSale;
-        $data['cash'] = $difference > 0 ? $difference : 0;
-        $data['change'] = $difference < 0 ? abs($difference) : 0;
         $data['olds'] = $olds;
         $data['news'] = $news;
 
         return $data;
     }
+
 
 
     protected function handleRecordCreation(array $data): Model
@@ -224,7 +309,7 @@ class CreateChange extends CreateRecord
                 'transaction_type' => 'change',
                 'payment_method' => "cash",
                 'status' => 'pending',
-                'total_amount' => $data['total_sale'],
+                'total_amount' => 0,
             ]);
             $purchase = Purchase::create([
                 'customer_id' => $data['customer_id'],
@@ -249,9 +334,9 @@ class CreateChange extends CreateRecord
                 'customer_id' => $data['customer_id'],
                 'transaction_id' => $transaction->id,
                 'user_id' => Auth::id(),
-                'cash' => $data['cash'] ?? 0,
-                'change' => $data['change'] ?? 0,
-                'discount' => $data['discount'] ?? 0,
+                'cash' =>  0,
+                'change' =>  0,
+                'discount' => 0,
                 'total_amount' => $data['total_sale'],
             ]);
 
@@ -265,18 +350,7 @@ class CreateChange extends CreateRecord
                     'subtotal' => $item['subtotal'],
                 ]);
             }
-            Change::create([
-                'customer_id' => $data['customer_id'],
-                'user_id' => Auth::id(),
-                'transaction_id' => $transaction->id,
-                'sale_id' => $sale->id,
-                'purchase_id' => $purchase->id,
-                'cash' => $data['cash'] ?? 0,
-                'change' => $data['change'] ?? 0,
-            ]);
-
             DB::commit();
-
             return $transaction;
         } catch (\Exception $e) {
             DB::rollBack();

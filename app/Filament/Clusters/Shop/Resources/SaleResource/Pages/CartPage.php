@@ -82,7 +82,7 @@ class CartPage extends Page implements HasForms
                     ->preload()
                     ->options(function () {
                         return Customer::all()->mapWithKeys(function ($customer) {
-                            return [$customer->id => "{$customer->name} - {$customer->nik}"];
+                            return [$customer->id => "{$customer->name}"];
                         });
                     })
                     ->createOptionForm([
@@ -90,12 +90,6 @@ class CartPage extends Page implements HasForms
                             ->label('Nama Lengkap')
                             ->prefixIcon('heroicon-m-user')
                             ->required(),
-
-                        TextInput::make('nik')
-                            ->label('NIK')
-                            ->prefixIcon('heroicon-m-identification')
-                            ->required()
-                            ->unique(table: 'customers', column: 'nik'),
 
                         TextInput::make('phone')
                             ->label('Nomor Telepon')
@@ -114,7 +108,7 @@ class CartPage extends Page implements HasForms
 
                         Notification::make()
                             ->title("Pelanggan berhasil ditambahkan")
-                            ->body("{$customer->name} - {$customer->nik}")
+                            ->body("{$customer->name}")
                             ->success()
                             ->send();
 

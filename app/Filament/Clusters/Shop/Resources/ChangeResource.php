@@ -12,6 +12,7 @@ use App\Models\Category;
 use App\Models\Customer;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
+use App\Models\Transaction;
 use App\Filament\Clusters\Shop;
 use Filament\Resources\Resource;
 use Filament\Forms\Components\Card;
@@ -33,7 +34,7 @@ use App\Filament\Clusters\Shop\Resources\ChangeResource\RelationManagers;
 
 class ChangeResource extends Resource
 {
-    protected static ?string $model = Change::class;
+    protected static ?string $model = Transaction::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-arrows-right-left';
     protected static ?string $navigationLabel = 'Pertukaran';
@@ -47,63 +48,61 @@ class ChangeResource extends Resource
     {
         return $form
             ->schema([
-                // Card::make([
-                Select::make('customer_id')
-                    ->label('Nama Pelanggan')
-                    ->searchable()
-                    ->required()
-                    ->preload()
-                    ->options(function () {
-                        return Customer::all()->mapWithKeys(function ($customer) {
-                            return [$customer->id => "{$customer->name}"];
-                        });
-                    })
-                    ->createOptionForm([
-                        TextInput::make('name')
-                            ->label('Nama Lengkap')
-                            ->prefixIcon('heroicon-m-user')
-                            ->required()
-                            ->minLength(3)
-                            ->maxLength(100)
-                            ->rule('regex:/^[a-zA-Z\s\.\']+$/') // hanya huruf, spasi, titik, apostrof
-                            ->helperText('Hanya huruf, spasi, titik, dan apostrof.'),
+                Card::make([
+                    Select::make('customer_id')
+                        ->label('Nama Pelanggan')
+                        ->searchable()
+                        ->required()
+                        ->preload()
+                        ->options(function () {
+                            return Customer::all()->mapWithKeys(function ($customer) {
+                                return [$customer->id => "{$customer->name}"];
+                            });
+                        })
+                        ->createOptionForm([
+                            TextInput::make('name')
+                                ->label('Nama Lengkap')
+                                ->prefixIcon('heroicon-m-user')
+                                ->required()
+                                ->minLength(3)
+                                ->maxLength(100)
+                                ->rule('regex:/^[a-zA-Z\s\.\']+$/') // hanya huruf, spasi, titik, apostrof
+                                ->helperText('Hanya huruf, spasi, titik, dan apostrof.'),
 
-                        TextInput::make('phone')
-                            ->label('Nomor Telepon')
-                            ->prefixIcon('heroicon-m-phone')
-                            ->tel()
-                            ->required()
-                            ->minLength(10)
-                            ->maxLength(15)
-                            ->telRegex('/^(\+62|62|0)8[1-9][0-9]{6,11}$/') // regex khas nomor Indo
-                            ->unique(table: 'customers', column: 'phone')
-                            ->helperText('Gunakan format +62 atau 08xxx.'),
+                            TextInput::make('phone')
+                                ->label('Nomor Telepon')
+                                ->prefixIcon('heroicon-m-phone')
+                                ->tel()
+                                ->required()
+                                ->minLength(10)
+                                ->maxLength(15)
+                                ->telRegex('/^(\+62|62|0)8[1-9][0-9]{6,11}$/') // regex khas nomor Indo
+                                ->unique(table: 'customers', column: 'phone')
+                                ->helperText('Gunakan format +62 atau 08xxx.'),
 
-                        TextInput::make('address')
-                            ->label('Alamat')
-                            ->prefixIcon('heroicon-m-map-pin')
-                            ->required()
-                            ->minLength(5)
-                            ->maxLength(255)
-                            ->rule('regex:/^[a-zA-Z0-9\s,.\-\/]+$/') // Alamat standar
-                            ->helperText('Isi alamat lengkap, boleh pakai koma, titik, atau strip.'),
-                    ])
-                    ->createOptionUsing(function (array $data) {
-                        $customer = Customer::create($data);
+                            TextInput::make('address')
+                                ->label('Alamat')
+                                ->prefixIcon('heroicon-m-map-pin')
+                                ->required()
+                                ->minLength(5)
+                                ->maxLength(255)
+                                ->rule('regex:/^[a-zA-Z0-9\s,.\-\/]+$/') // Alamat standar
+                                ->helperText('Isi alamat lengkap, boleh pakai koma, titik, atau strip.'),
+                        ])
+                        ->createOptionUsing(function (array $data) {
+                            $customer = Customer::create($data);
 
-                        Notification::make()
-                            ->title("Pelanggan berhasil ditambahkan")
-                            ->body("{$customer->name} - {$customer->nik}")
-                            ->success()
-                            ->send();
+                            Notification::make()
+                                ->title("Pelanggan berhasil ditambahkan")
+                                ->body("{$customer->name} - {$customer->nik}")
+                                ->success()
+                                ->send();
 
-                        return $customer;
-                    })->columnSpanFull(),
-                Section::make('Produk Lama')
-                    ->description('Informasi produk yang sebelumnya digunakan oleh pelanggan.')
-                    ->schema([
+                            return $customer;
+                        })->columnSpanFull(),
+                    Grid::make(2)->schema([
                         Repeater::make('olds')
-                            ->label('')
+                            ->label('Produk Lama')
                             ->schema([
                                 Grid::make(12)
                                     ->schema([
@@ -126,12 +125,8 @@ class ChangeResource extends Resource
                                     ])
 
                             ])->addActionLabel('Tambah'),
-                    ])->collapsed(false),
-                Section::make('Produk Baru')
-                    ->description('Detail produk pengganti yang akan dicatat dalam sistem.')
-                    ->schema([
                         Repeater::make('news')
-                            ->label('')
+                            ->label('Produk Baru')
                             ->schema([
                                 Grid::make(12)
                                     ->schema([
@@ -157,8 +152,9 @@ class ChangeResource extends Resource
                                     ])
 
                             ])->addActionLabel('Tambah'),
-                    ])->collapsed(),
-                // ]),
+
+                    ]),
+                ]),
             ]);
     }
 
@@ -166,7 +162,7 @@ class ChangeResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('transaction.invoice')
+                Tables\Columns\TextColumn::make('invoice')
                     ->label('Invoice')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('purchase.total_amount')
@@ -199,13 +195,13 @@ class ChangeResource extends Resource
                     ->label('Konfirmasi')
                     ->icon('heroicon-m-paper-airplane')
                     ->color('success')
-                    ->visible(fn($record) => $record->transaction->status === 'pending')
+                    ->visible(fn($record) => $record->status === 'pending')
                     ->requiresConfirmation()
                     ->modalHeading('Proses Pembayaran')
-                    ->modalDescription('Apakah kamu yakin mau proses pembayaran untuk penggadaian ini?')
+                    ->modalDescription('Apakah kamu yakin mau proses pembayaran untuk pertukaran ini?')
                     ->modalButton('Ya, Proses Pembayaran')
                     ->action(function ($record, $data) {
-                        return redirect()->route('filament.admin.shop.resources.changes.payment', $record->transaction->invoice);
+                        return redirect()->route('filament.admin.shop.resources.changes.payment', $record->invoice);
                     }),
                 Tables\Actions\ViewAction::make(),
             ])
@@ -229,20 +225,7 @@ class ChangeResource extends Resource
             'index' => Pages\ListChanges::route('/'),
             'create' => Pages\CreateChange::route('/create'),
             'view' => Pages\ViewChange::route('/{record}'),
-            'payment' => Pages\PaymentCangePage::route('/payment/{record}'),
+            'payment' => Pages\PaymentChangePage::route('/payment/{invoice}'),
         ];
-    }
-
-    public static function resolveRecordRouteBinding(string|int $key): ?Model
-    {
-        // First try to find by Change ID if numeric
-        if (is_numeric($key)) {
-            return parent::resolveRecordRouteBinding($key);
-        }
-
-        // Otherwise look for related transaction invoice
-        return static::getModel()::whereHas('transaction', function ($query) use ($key) {
-            $query->where('invoice', $key);
-        })->first();
     }
 }

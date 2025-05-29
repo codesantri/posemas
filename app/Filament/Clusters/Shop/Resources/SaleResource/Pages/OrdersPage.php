@@ -14,6 +14,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ViewField;
 use Illuminate\Contracts\Support\Htmlable;
 use Filament\Tables\Concerns\InteractsWithTable;
+use Illuminate\Contracts\Database\Eloquent\Builder;
 use App\Filament\Clusters\Shop\Resources\SaleResource;
 
 class OrdersPage extends Page implements HasTable
@@ -41,7 +42,7 @@ class OrdersPage extends Page implements HasTable
                     ->icon('heroicon-m-plus')
                     ->button(),
             ])
-            ->query(Sale::query()) // 👈 Pastikan query ini sesuai dengan relasi produk
+            ->query($this->getTableQuery()) // 👈 Pastikan query ini sesuai dengan relasi produk
             ->columns([
                 TextColumn::make('transaction.invoice')
                     ->label('Invoice')
@@ -141,5 +142,16 @@ class OrdersPage extends Page implements HasTable
                 //     Tables\Actions\DeleteBulkAction::make(),
                 // ]),
             ]);
+    }
+
+    protected function getTableQuery(): ?Builder
+    {
+        return Sale::query()
+            ->whereHas(
+                'transaction',
+                fn($query) =>
+                $query->where('transaction_type', 'sale')
+            )
+            ->with('transaction');
     }
 }

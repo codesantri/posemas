@@ -93,11 +93,6 @@ class ConfirmationPage extends Page implements HasForms
             $this->record->pawning->update([
                 'status' => 'active',
             ]);
-            $totalAmount = $this->record->pawning->estimated_value + ($this->record->pawning->estimated_value * ($this->record->pawning->rate / 100));
-            $this->record->update([
-                'total_amount' => $totalAmount,
-            ]);
-
             Notification::make()
                 ->title('Penggadaian berhasil')
                 ->body("Transaksi #{$this->record->invoice} telah diproses.")

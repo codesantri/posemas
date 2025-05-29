@@ -61,11 +61,11 @@ class PawningResource extends Resource
                                             ->searchable()
                                             ->options(Product::pluck('name', 'name'))
                                             ->preload()
-                                            // ->required()
+                                            ->required()
                                             ->createOptionForm([
                                                 TextInput::make('name')
                                                     ->label('Nama Produk')
-                                                    // ->required()
+                                                    ->required()
                                                     ->minLength(3)
                                                     ->maxLength(100)
                                                     ->rule('regex:/^[a-zA-Z0-9\s\-\.]+$/')
@@ -76,7 +76,7 @@ class PawningResource extends Resource
                                         Select::make('category_id')
                                             ->label('Kategori')
                                             ->options(Category::pluck('name', 'id'))
-                                            // ->required()
+                                            ->required()
                                             ->searchable()
                                             ->preload(),
                                     ]),
@@ -84,14 +84,14 @@ class PawningResource extends Resource
                                     Grid::make(4)->schema([
                                         Select::make('type_id')
                                             ->label('Jenis')
-                                            // ->required()
+                                            ->required()
                                             ->options(Type::pluck('name', 'id'))
                                             ->searchable()
                                             ->preload(),
 
                                         Select::make('karat_id')
                                             ->label('Karat-Kadar')
-                                            // ->required()
+                                            ->required()
                                             ->options(Karat::all()->mapWithKeys(fn($karat) => [
                                                 $karat->id => "{$karat->karat} - {$karat->rate}%",
                                             ]))
@@ -100,7 +100,7 @@ class PawningResource extends Resource
 
                                         TextInput::make('weight')
                                             ->label('Berat (gram)')
-                                            // ->required()
+                                            ->required()
                                             ->numeric()
                                             ->step(0.01)
                                             ->minValue(0.01)
@@ -111,7 +111,7 @@ class PawningResource extends Resource
 
                                         TextInput::make('quantity')
                                             ->label('Kuantitas')
-                                            // ->required()
+                                            ->required()
                                             ->numeric()
                                             ->minValue(1)
                                             ->maxValue(1000)
@@ -142,18 +142,18 @@ class PawningResource extends Resource
                             Select::make('customer_id')
                                 ->label('Nama Pelanggan')
                                 ->searchable()
-                                // ->required()
+                                ->required()
                                 ->preload()
                                 ->options(function () {
                                     return Customer::all()->mapWithKeys(fn($customer) => [
-                                        $customer->id => "{$customer->name} - {$customer->nik}"
+                                        $customer->id => "{$customer->name}"
                                     ]);
                                 })
                                 ->createOptionForm([
                                     TextInput::make('name')
                                         ->label('Nama Lengkap')
                                         ->prefixIcon('heroicon-m-user')
-                                        // ->required()
+                                        ->required()
                                         ->minLength(3)
                                         ->maxLength(100)
                                         ->rule('regex:/^[a-zA-Z\s\.\']+$/') // hanya huruf, spasi, titik, apostrof
@@ -164,7 +164,7 @@ class PawningResource extends Resource
                                         ->label('Nomor Telepon')
                                         ->prefixIcon('heroicon-m-phone')
                                         ->tel()
-                                        // ->required()
+                                        ->required()
                                         ->minLength(10)
                                         ->maxLength(15)
                                         ->telRegex('/^(\+62|62|0)8[1-9][0-9]{6,11}$/')
@@ -174,7 +174,7 @@ class PawningResource extends Resource
                                     TextInput::make('address')
                                         ->label('Alamat')
                                         ->prefixIcon('heroicon-m-map-pin')
-                                        // ->required()
+                                        ->required()
                                         ->minLength(5)
                                         ->maxLength(255)
                                         ->rule('regex:/^[a-zA-Z0-9\s,.\-\/]+$/')
@@ -185,7 +185,7 @@ class PawningResource extends Resource
 
                                     Notification::make()
                                         ->title("Pelanggan berhasil ditambahkan")
-                                        ->body("{$customer->name} - {$customer->nik}")
+                                        ->body("{$customer->name}")
                                         ->success()
                                         ->send();
 
@@ -196,7 +196,7 @@ class PawningResource extends Resource
                                 TextInput::make('rate')
                                     ->label('Bunga (0.00% - 100.00%)')
                                     ->type('number')
-                                    // ->required()
+                                    ->required()
                                     ->step(0.01)
                                     ->minValue(0)
                                     ->maxValue(100)
@@ -207,13 +207,13 @@ class PawningResource extends Resource
                                 DatePicker::make('pawn_date')  // Ganti nama field biar gak bentrok
                                     ->label('Tanggal Gadai')
                                     ->prefixIcon('heroicon-m-calendar-days')
-                                    // ->required()
+                                    ->required()
                                     ->rule('date'),
 
                                 DatePicker::make('due_date')
                                     ->label('Jatuh Tempo')
                                     ->prefixIcon('heroicon-m-clock')
-                                    // ->required()
+                                    ->required()
                                     ->rule('date')
                                     ->afterOrEqual('pawn_date'),
 
@@ -351,7 +351,7 @@ class PawningResource extends Resource
                     ->modalDescription('Apakah kamu yakin mau cetak nota untuk pesanan ini?')
                     ->modalButton('Ya, Cetak')
                     ->action(function ($record, $data) {
-                        return redirect()->route('print.sale', $record->transaction->invoice);
+                        return redirect()->route('print.pawning', $record->transaction->invoice);
                     })
                     ->link(),
                 ActionGroup::make([
@@ -378,6 +378,7 @@ class PawningResource extends Resource
         return [
             'index' => Pages\ListPawnings::route('/'),
             'create' => Pages\CreatePawning::route('/create'),
+            'view' => Pages\ViewPawning::route('/{record}'),
             'confirmation' => Pages\ConfirmationPage::route('/confirmation/{inv}'),
             'payment' => Pages\PaymentPage::route('/payment/{inv}'),
         ];

@@ -34,15 +34,6 @@ class CustomerResource extends Resource
                     ->maxLength(100)
                     ->rule('regex:/^[a-zA-Z\s\.\']+$/'),
 
-                TextInput::make('nik')
-                    ->label('NIK')
-                    ->prefixIcon('heroicon-m-identification')
-                    ->required()
-                    ->numeric()
-                    ->minLength(16)
-                    ->maxLength(16)
-                    ->unique(table: 'customers', column: 'nik'),
-
                 TextInput::make('phone')
                     ->label('Nomor Telepon')
                     ->prefixIcon('heroicon-m-phone')
@@ -69,9 +60,6 @@ class CustomerResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nama Lengkap')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('nik')
-                    ->label('NIK')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('address')
                     ->label('Alamat')

@@ -24,11 +24,6 @@ class Transaction extends Model
         return $this->hasOne(Pawning::class);
     }
 
-    public function change()
-    {
-        return $this->hasOne(Change::class);
-    }
-
 
     public function getRouteKeyName()
     {

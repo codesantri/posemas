@@ -25,4 +25,9 @@ class Customer extends Model
     {
         return $this->hasMany(Pawning::class);
     }
+
+    public function changes()
+    {
+        return $this->hasMany(Change::class);
+    }
 }

@@ -23,7 +23,7 @@
 
 {{-- Items Table --}}
 <table class="w-full text-sm">
-    <thead class="bg-gray-100 text-gray-700">
+    <thead class=" ">
         <tr>
             <th class="p-2 text-left">Item</th>
             <th class="p-2 text-center">Kategori</th>
@@ -66,7 +66,7 @@
     </div>
 </div>
 <table class="w-full text-sm">
-    <thead class="bg-gray-100 text-gray-700">
+    <thead class=" ">
         <tr>
             <th class="p-2 text-left">Tanggal Penggadaian</th>
             <th class="p-2 text-left">Jatuh Tempo</th>

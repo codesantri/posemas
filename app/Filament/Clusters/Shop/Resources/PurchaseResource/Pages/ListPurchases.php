@@ -5,6 +5,7 @@ namespace App\Filament\Clusters\Shop\Resources\PurchaseResource\Pages;
 use App\Filament\Clusters\Shop\Resources\PurchaseResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Database\Eloquent\Builder;
 
 class ListPurchases extends ListRecords
 {
@@ -15,5 +16,13 @@ class ListPurchases extends ListRecords
         return [
             Actions\CreateAction::make()->label('Tambah Pembelian')->icon('heroicon-m-plus'),
         ];
+    }
+
+    protected function getTableQuery(): ?Builder
+    {
+        return parent::getTableQuery()
+            ?->whereHas('transaction', function (Builder $query) {
+                $query->where('transaction_type', 'purchase');
+            });
     }
 }

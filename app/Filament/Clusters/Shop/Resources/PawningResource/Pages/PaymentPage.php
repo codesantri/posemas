@@ -69,7 +69,7 @@ class PaymentPage extends Page implements HasForms
             ->firstOrFail();
         $this->record->status = $this->record->status ?? 'pending';
         $this->data['payment_method'] = $this->record->payment_method;
-        $this->total = $this->record->total_amount;
+        $this->total = round($this->record->pawning->estimated_value * (1 + ($this->record->pawning->rate / 100)));
     }
 
     public function redirectBack(Transaction $record): void
@@ -96,6 +96,7 @@ class PaymentPage extends Page implements HasForms
                         ->content(new HtmlString(
                             view('filament.pages.shop.pawning.payment-detail', [
                                 'record' => $this->record,
+                                'total' => $this->total,
                             ])->render()
                         )),
                 ]),
@@ -183,13 +184,15 @@ class PaymentPage extends Page implements HasForms
             return;
         }
 
-        if ($this->cash < $this->total) {
-            Notification::make()
-                ->title('Nominal pembayaran kurang dari total yang harus dibayar')
-                ->danger()
-                ->duration(3000)
-                ->send();
-            return;
+        if ($this->data['payment_method'] === 'cash') {
+            if ($this->cash < $this->total) {
+                Notification::make()
+                    ->title('Nominal pembayaran kurang dari total yang harus dibayar')
+                    ->danger()
+                    ->duration(3000)
+                    ->send();
+                return;
+            }
         }
 
         $this->record->update([
@@ -201,6 +204,8 @@ class PaymentPage extends Page implements HasForms
 
         $this->record->pawning->update([
             'status' => "paid_off",
+            'cash' => $this->cash,
+            'change' => $this->change,
         ]);
 
 

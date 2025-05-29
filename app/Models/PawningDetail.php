@@ -44,4 +44,9 @@ class PawningDetail extends Model
             $model->onUpdate(true); // 🔄 Auto delete old image saat update
         });
     }
+
+    public function getSubtotalAttribute()
+    {
+        return $this->weight * $this->karat->buy_price * $this->quantity;
+    }
 }
