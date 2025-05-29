@@ -32,6 +32,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('')
             ->login(Login::class)
             ->sidebarCollapsibleOnDesktop()
+            // ->brandLogo(asset('logo-cetak.png'))
             ->favicon(asset('logo-cetak.png'))
             ->colors([
                 'primary' => Color::Amber,

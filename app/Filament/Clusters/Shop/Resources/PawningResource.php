@@ -20,12 +20,15 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Wizard;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
+use Filament\Tables\Actions\ViewAction;
+use Illuminate\Support\Facades\Storage;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Pages\SubNavigationPosition;
+use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -260,67 +263,14 @@ class PawningResource extends Resource
                         default => ucfirst($state),
                     }),
             ])
-            ->filters([
-                // Bulan Transaksi
-                // SelectFilter::make('transaction_month')
-                //     ->label('Bulan Transaksi')
-                //     ->options([
-                //         '01' => 'Januari',
-                //         '02' => 'Februari',
-                //         '03' => 'Maret',
-                //         '04' => 'April',
-                //         '05' => 'Mei',
-                //         '06' => 'Juni',
-                //         '07' => 'Juli',
-                //         '08' => 'Agustus',
-                //         '09' => 'September',
-                //         '10' => 'Oktober',
-                //         '11' => 'November',
-                //         '12' => 'Desember',
-                //     ])
-                //     ->default(now()->format('m'))
-                //     ->modifyQueryUsing(function ($query, $state) {
-                //         if (! $state) return;
-                //         $query->whereHas('transaction', function ($q) use ($state) {
-                //             $q->whereMonth('transaction_date', $state);
-                //         });
-                //     }),
-
-                // Kategori Barang
-                // SelectFilter::make('category_id')
-                //     ->label('Kategori')
-                //     ->options(\App\Models\Category::pluck('name', 'id')->toArray())
-                //     ->default(null)
-                //     ->modifyQueryUsing(function ($query, $state) {
-                //         if (! $state) return;
-                //         $query->whereHas('details', function ($q) use ($state) {
-                //             $q->where('category_id', $state);
-                //         });
-                //     }),
-
-                // SelectFilter::make('status')
-                //     ->label('Status')
-                //     ->options([
-                //         'pending' => 'Menunggu Konfirmasi',
-                //         'active' => 'Aktif',
-                //         'paid_off' => 'Lunas',
-                //     ])
-                //     ->default(null)
-                //     ->modifyQueryUsing(function ($query, $state) {
-                //         if (! $state) return;
-                //         $query->where('status', $state);
-                //     }),
-            ])
-
-
-            ->defaultSort('id', 'desc') // 🔥 Tambahin default sort by ID desc
+            ->filters([])
 
             ->actions([
                 Action::make('payment')
                     ->label('Pembayaran')
                     ->icon('heroicon-m-paper-airplane')
                     ->color('info')
-                    ->visible(fn($record) => $record->transaction->status === 'pending')
+                    ->visible(fn($record) => $record->status === 'active')
                     ->requiresConfirmation()
                     ->modalHeading('Proses Pembayaran')
                     ->modalDescription('Apakah kamu yakin mau proses pembayaran untuk penggadaian ini?')
@@ -333,11 +283,11 @@ class PawningResource extends Resource
                     ->label('Konfirmasi')
                     ->icon('heroicon-m-paper-airplane')
                     ->color('success')
-                    ->visible(fn($record) => $record->status !== 'active' && $record->transaction->status === 'pending')
+                    ->visible(fn($record) => $record->status !== 'paid_off' && $record->status !== 'active' && $record->transaction->status === 'pending')
                     ->requiresConfirmation()
-                    ->modalHeading('Proses Pembayaran')
-                    ->modalDescription('Apakah kamu yakin mau proses pembayaran untuk penggadaian ini?')
-                    ->modalButton('Ya, Proses Pembayaran')
+                    ->modalHeading('Proses Konfirmasi')
+                    ->modalDescription('Apakah kamu yakin mau proses Konfirmasi untuk penggadaian ini?')
+                    ->modalButton('Ya, Konfirmasi')
                     ->action(function ($record, $data) {
                         return redirect()->route('filament.admin.shop.resources.pawnings.confirmation', $record->transaction->invoice);
                     }),
@@ -355,14 +305,18 @@ class PawningResource extends Resource
                     })
                     ->link(),
                 ActionGroup::make([
-                    Tables\Actions\ViewAction::make(),
-                    Tables\Actions\DeleteAction::make(),
+                    ViewAction::make(),
+                    DeleteAction::make()
+                        ->visible(fn($record) => $record->transaction?->status !== 'success') // cek null-safe
+                        ->before(function ($record) {
+                            self::deletePawning($record); // jangan pakai koma di sini
+                        }),
                 ]),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    // Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                // Tables\Actions\BulkActionGroup::make([
+                //     // Tables\Actions\DeleteBulkAction::make(),
+                // ]),
             ]);
     }
 
@@ -382,5 +336,24 @@ class PawningResource extends Resource
             'confirmation' => Pages\ConfirmationPage::route('/confirmation/{inv}'),
             'payment' => Pages\PaymentPage::route('/payment/{inv}'),
         ];
+    }
+
+    private static function deletePawning($record)
+    {
+        // Hapus transaksi jika ada
+        if ($record->transaction) {
+            $record->transaction->delete();
+        }
+
+        // Hapus image dari detail jika ada
+        if ($record->details) {
+            foreach ($record->details as $detail) {
+                if ($detail->image && Storage::disk('public')->exists($detail->image)) {
+                    Storage::disk('public')->delete($detail->image);
+                }
+            }
+
+            $record->details()->delete();
+        }
     }
 }

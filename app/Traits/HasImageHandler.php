@@ -8,22 +8,22 @@ use Illuminate\Support\Facades\Storage;
 
 trait HasImageHandler
 {
-    public function onShow(bool $show = false): string
-    {
-        if ($show && $this->image) {
-            return asset('storage/' . $this->image);
-        }
+    // public function onShow(bool $show = false): string
+    // {
+    //     if ($show && $this->getImagePath()) {
+    //         return asset('storage/' . $this->getImagePath());
+    //     }
 
-        $svgFallback = Blade::render('<x-heroicon-o-photo class="w-36 h-36 text-gray-400" />');
-        return 'data:image/svg+xml;base64,' . base64_encode($svgFallback);
-    }
+    //     $svgFallback = Blade::render('<x-heroicon-o-photo class="w-36 h-36 text-gray-400" />');
+    //     return 'data:image/svg+xml;base64,' . base64_encode($svgFallback);
+    // }
 
     public function onUpdate(bool $update = false): void
     {
         if (!$update) return;
 
         $oldImage = $this->getOriginal('image');
-        $newImage = $this->image;
+        $newImage = $this->getImagePath();
 
         if ($newImage && $oldImage && $newImage !== $oldImage) {
             if (Storage::disk('public')->exists($oldImage)) {
@@ -39,11 +39,21 @@ trait HasImageHandler
     {
         if (!$delete) return;
 
-        if ($this->image && Storage::disk('public')->exists($this->image)) {
-            Storage::disk('public')->delete($this->image);
-            Log::info("Deleted public image: {$this->image}");
+        $image = $this->getImagePath();
+
+        if ($image && Storage::disk('public')->exists($image)) {
+            Storage::disk('public')->delete($image);
+            Log::info("Deleted public image: {$image}");
         } else {
-            Log::warning("Image not found in public storage: {$this->image}");
+            Log::warning("Image not found in public storage: {$image}");
         }
+    }
+
+    /**
+     * Method default, override kalau nama field image beda
+     */
+    public function getImagePath(): ?string
+    {
+        return $this->image ?? null;
     }
 }

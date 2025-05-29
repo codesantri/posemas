@@ -12,6 +12,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ViewField;
+use Filament\Tables\Actions\DeleteAction;
 use Illuminate\Contracts\Support\Htmlable;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Illuminate\Contracts\Database\Eloquent\Builder;
@@ -135,12 +136,16 @@ class OrdersPage extends Page implements HasTable
                         return redirect()->route('print.sale', $record->transaction->invoice);
                     })
                     ->link(),
-                Tables\Actions\DeleteAction::make(),
+                DeleteAction::make()
+                    ->visible(fn($record) => $record->transaction?->status !== 'success') // cek null-safe
+                    ->before(function ($record) {
+                        self::deleteSale($record); // jangan pakai koma di sini
+                    }),
             ])
             ->bulkActions([
-                // Tables\Actions\BulkActionGroup::make([
-                //     Tables\Actions\DeleteBulkAction::make(),
-                // ]),
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ]);
     }
 
@@ -153,5 +158,13 @@ class OrdersPage extends Page implements HasTable
                 $query->where('transaction_type', 'sale')
             )
             ->with('transaction');
+    }
+
+    private static function deleteSale($record)
+    {
+        // Hapus transaksi jika ada
+        if ($record->transaction) {
+            $record->transaction->delete();
+        }
     }
 }

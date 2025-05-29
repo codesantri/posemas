@@ -1,32 +1,35 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Resources;
 
 use Carbon\Carbon;
-use Filament\Pages\Page;
+use Filament\Forms;
+use Filament\Tables;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
 use App\Models\Transaction;
 use Illuminate\Support\Number;
+use Filament\Resources\Resource;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Contracts\HasTable;
+use Illuminate\Support\Facades\Storage;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Contracts\Support\Htmlable;
-use Filament\Tables\Concerns\InteractsWithTable;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Resources\TransactionResource\Pages;
+use App\Filament\Resources\TransactionResource\RelationManagers;
 
-class TransactionHistories extends Page implements HasTable
+class TransactionResource extends Resource
 {
-    use InteractsWithTable;
-
     protected static ?string $model = Transaction::class;
-    protected static ?string $navigationIcon = 'heroicon-o-clock';
-    protected static string $view = 'filament.pages.transaction-histories';
-    protected static ?string $title = 'Riwayat transaksi';
 
-    public function table(Table $table): Table
+    protected static ?string $navigationIcon = 'heroicon-o-clock';
+    protected static ?string $breadcrumb = 'Riwayat transaksi';
+    protected static ?string $navigationLabel = "Riwayat transaksi";
+
+    public static function table(Table $table): Table
     {
         return $table
-            ->query(Transaction::with(['sale', 'purchase']))
             ->columns([
                 TextColumn::make('invoice')->label('Invoice')->searchable(),
 
@@ -37,8 +40,8 @@ class TransactionHistories extends Page implements HasTable
                 TextColumn::make('transaction_type')
                     ->label('Jenis Transaksi')
                     ->badge()
-                    ->color(fn($record) => $this->getTypeColor($record))
-                    ->formatStateUsing(fn($state, $record) => $this->getTypeLabel($record)),
+                    ->color(fn($record) => self::getTypeColor($record))
+                    ->formatStateUsing(fn($state, $record) => self::getTypeLabel($record)),
 
                 TextColumn::make('total_amount')
                     ->label('Total Transaksi')
@@ -77,43 +80,14 @@ class TransactionHistories extends Page implements HasTable
                     }),
             ])
             ->filters([
-                SelectFilter::make('transaction_type')
-                    ->label('Jenis Transaksi')
-                    ->options([
-                        'sale' => 'Penjualan',
-                        'purchase' => 'Pembelian',
-                        'pawning' => 'Gadai',
-                        'tukar_tambah' => 'Tukar Tambah',
-                        'tukar_kurang' => 'Tukar Kurang',
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        if (!empty($data['value'])) {
-                            match ($data['value']) {
-                                'sale', 'purchase', 'pawning' => $query->where('transaction_type', $data['value']),
-                                'tukar_tambah' => $query->where('transaction_type', 'change')
-                                    ->whereHas('sale')
-                                    ->whereHas('purchase')
-                                    ->whereHas('sale', function ($q) {
-                                        $q->whereRaw('(SELECT total_amount FROM sales WHERE sales.transaction_id = transactions.id) > 
-                                      (SELECT total_amount FROM purchases WHERE purchases.transaction_id = transactions.id)');
-                                    }),
-                                'tukar_kurang' => $query->where('transaction_type', 'change')
-                                    ->whereHas('sale')
-                                    ->whereHas('purchase')
-                                    ->whereHas('sale', function ($q) {
-                                        $q->whereRaw('(SELECT total_amount FROM sales WHERE sales.transaction_id = transactions.id) < 
-                                      (SELECT total_amount FROM purchases WHERE purchases.transaction_id = transactions.id)');
-                                    }),
-                                default => null,
-                            };
-                        }
-                    }),
                 SelectFilter::make('transaction_date')
-                    ->label('Tanggal Transaksi')
+                    ->label('Tanggal')
                     ->options(function () {
                         return Transaction::query()
                             ->selectRaw('DATE(transaction_date) as date')
+                            ->whereNotNull('transaction_date') // Hanya untuk dropdown (null gak bisa jadi option)
                             ->distinct()
+                            ->orderBy('date', 'desc')
                             ->pluck('date', 'date')
                             ->toArray();
                     })
@@ -121,8 +95,8 @@ class TransactionHistories extends Page implements HasTable
                         if (!empty($data['value'])) {
                             $query->whereDate('transaction_date', $data['value']);
                         }
+                        // kalau kosong, biarkan semua data termasuk null tetap tampil
                     }),
-
 
                 SelectFilter::make('month')
                     ->label('Bulan')
@@ -140,31 +114,68 @@ class TransactionHistories extends Page implements HasTable
                         '11' => 'November',
                         '12' => 'Desember',
                     ])
-                    ->default(Carbon::now()->format('n'))
+                    ->default(null)
                     ->query(function (Builder $query, array $data) {
                         if (!empty($data['value'])) {
                             $query->whereMonth('transaction_date', $data['value']);
                         }
                     }),
-
                 SelectFilter::make('year')
                     ->label('Tahun')
                     ->options(function () {
                         $startYear = 2022;
                         $currentYear = Carbon::now()->year;
-                        $years = range($startYear, $currentYear);
-                        return array_combine($years, $years);
+                        return array_combine(range($startYear, $currentYear), range($startYear, $currentYear));
                     })
-                    ->default(Carbon::now()->year)
+                    ->default(null)
                     ->query(function (Builder $query, array $data) {
                         if (!empty($data['value'])) {
                             $query->whereYear('transaction_date', $data['value']);
                         }
                     }),
+
+
+
+            ])
+            ->actions([
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn($record) => $record->status !== 'success')
+                    ->before(function ($record) {
+                        match ($record->transaction_type) {
+                            'sale' => self::deleteSale($record),
+                            'purchase' => self::deletePurchase($record),
+                            'change' => self::deleteChange($record),
+                            'pawning' => self::deletePawning($record),
+                            default => null,
+                        };
+                    }),
+            ])
+            ->bulkActions([
+                Tables\Actions\DeleteBulkAction::make()
+                    ->action(function ($records) {
+                        foreach ($records as $record) {
+                            match ($record->transaction_type) {
+                                'sale' => self::deleteSale($record),
+                                'purchase' => self::deletePurchase($record),
+                                'change' => self::deleteChange($record),
+                                'pawning' => self::deletePawning($record),
+                                default => null,
+                            };
+
+                            $record->delete(); // Tetap hapus record utamanya
+                        }
+                    }),
             ]);
     }
 
-    private function getTypeLabel($record): string
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListTransactions::route('/'),
+        ];
+    }
+
+    private static function getTypeLabel($record): string
     {
         if ($record->transaction_type === 'change') {
             $saleAmount = optional($record->sale)->total_amount ?? 0;
@@ -180,7 +191,7 @@ class TransactionHistories extends Page implements HasTable
         };
     }
 
-    private function getTypeColor($record): string
+    private static function getTypeColor($record): string
     {
         if ($record->transaction_type === 'change') {
             $saleAmount = optional($record->sale)->total_amount ?? 0;
@@ -240,5 +251,42 @@ class TransactionHistories extends Page implements HasTable
 
         $heading = "Total • {$formattedTotal}";
         return $heading;
+    }
+
+    private static function deleteSale($record)
+    {
+        if ($record->sale) {
+            // Hapus saleDetails jika ada
+            $record->sale->saleDetails()->delete();
+            $record->sale->delete();
+        }
+    }
+
+    private static function deletePurchase($record)
+    {
+        if ($record->purchase) {
+            $record->purchase->purchaseDetails()->delete();
+            $record->purchase->delete();
+        }
+    }
+
+    private static function deleteChange($record)
+    {
+        self::deleteSale($record);
+        self::deletePurchase($record);
+    }
+
+    private static function deletePawning($record)
+    {
+        if ($record->pawning) {
+            // Hapus gambar jika ada di details
+            foreach ($record->pawning->details as $detail) {
+                if ($detail->image) {
+                    Storage::disk('public')->delete($detail->image);
+                }
+            }
+            $record->pawning->details()->delete();
+            $record->pawning->delete();
+        }
     }
 }

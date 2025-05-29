@@ -45,12 +45,12 @@ class Login extends BaseLogin
     {
         return <<<HTML
         <div class="text-center space-y-2 mb-6">
-            <!-- <div class="text-sm flex justify-center text-gray-600 text-center">
+            <div class="text-sm flex justify-center text-gray-600 text-center">
                 <img src="/logo-cetak.png" alt="" srcset="" width="100px" height="100px" />
-            </div> -->
-            <h2 class="text-lg font-semibold">
+            </div>
+            <!-- <h2 class="text-lg font-semibold">
                 Toko Emas Logam Mulia Bangko
-            </h2>
+            </h2> -->
         </div>
         HTML;
     }

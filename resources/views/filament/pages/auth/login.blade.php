@@ -17,6 +17,9 @@
         align-items: center;
         width: 100%;
     }
+    .fi-simple-main .fi-simple-header{
+        
+    }
 
     .fi-simple-page {
         width: 100%;

@@ -39,7 +39,7 @@ class UserResource extends Resource
                     ->label('Username')
                     ->prefixIcon('heroicon-m-at-symbol')
                     ->required()
-                    ->minLength(10)
+                    ->minLength(4)
                     ->maxLength(15)
                     ->telRegex('/^(\+62|62|0)8[1-9][0-9]{6,11}$/')
                     ->unique(table: 'users', column: 'username'),
@@ -49,11 +49,10 @@ class UserResource extends Resource
                     ->password()
                     ->required()
                     ->revealable()
-                    ->minLength(8)
+                    ->minLength(4)
                     ->maxLength(64)
-                    ->rules(['regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/']) // Password strong policy
-                    ->dehydrated(true)
-                    ->visibleOn('create'),
+                    ->dehydrated(true),
+                // ->visibleOn('create'),
 
                 Select::make('roles')
                     ->label('Peran Pengguna')

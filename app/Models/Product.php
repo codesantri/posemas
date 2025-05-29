@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasImageHandler;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Product extends Model
 {
     /** @use HasFactory<\Database\Factories\ProductFactory> */
-    use HasFactory;
+    use HasFactory, HasImageHandler;
     protected $guarded = [''];
     protected $casts = [
         'weight' => 'float',
@@ -66,23 +67,19 @@ class Product extends Model
             : 0;
     }
 
-    // protected function image(): Attribute
-    // {
-    //     return Attribute::make(
-    //         get: function ($image) {
-    //             if ($image) {
-    //                 return asset('/storage/' . $image);
-    //             }
+    public function getImagePath(): ?string
+    {
+        return $this->image; // ganti sesuai nama kolom di DB, misal `image`, `image_path`, dll
+    }
 
-    //             // Render Blade Icon as SVG
-    //             $svgFallback = Blade::render('<x-heroicon-o-photo class="w-36 h-36" />');
+    protected static function booted()
+    {
+        static::deleting(function ($model) {
+            $model->onDelete(true);
+        });
 
-    //             // Encode jadi data URI
-    //             $base64 = 'data:image/svg+xml;base64,' . base64_encode($svgFallback);
-
-    //             return $base64;
-    //         },
-    //         set: fn($image) => $image,
-    //     );
-    // }
+        static::updating(function ($model) {
+            $model->onUpdate(true);
+        });
+    }
 }

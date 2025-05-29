@@ -34,6 +34,11 @@ class PawningDetail extends Model
         return $this->belongsTo(Category::class);
     }
 
+    public function getImagePath(): ?string
+    {
+        return $this->image; // ganti sesuai nama kolom di DB, misal `image`, `image_path`, dll
+    }
+
     protected static function booted()
     {
         static::deleting(function ($model) {
@@ -41,7 +46,7 @@ class PawningDetail extends Model
         });
 
         static::updating(function ($model) {
-            $model->onUpdate(true); // 🔄 Auto delete old image saat update
+            $model->onUpdate(true);
         });
     }
 

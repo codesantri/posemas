@@ -23,6 +23,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\SubNavigationPosition;
+use Filament\Tables\Actions\DeleteAction;
 use App\Filament\Clusters\Shop\Resources\PurchaseResource\Pages;
 
 class PurchaseResource extends Resource
@@ -59,9 +60,7 @@ class PurchaseResource extends Resource
                                 ->prefixIcon('heroicon-m-user')
                                 ->required()
                                 ->minLength(3)
-                                ->maxLength(100)
-                                ->rule('regex:/^[a-zA-Z\s\.\']+$/') // hanya huruf, spasi, titik, apostrof
-                                ->helperText('Hanya huruf, spasi, titik, dan apostrof.'),
+                                ->maxLength(100),
 
                             TextInput::make('phone')
                                 ->label('Nomor Telepon')
@@ -79,8 +78,7 @@ class PurchaseResource extends Resource
                                 ->prefixIcon('heroicon-m-map-pin')
                                 ->required()
                                 ->minLength(5)
-                                ->maxLength(255)
-                                ->rule('regex:/^[a-zA-Z0-9\s,.\-\/]+$/') // Alamat standar
+                                ->maxLength(255) // Alamat standar
                                 ->helperText('Isi alamat lengkap, boleh pakai koma, titik, atau strip.'),
                         ])
                         ->createOptionUsing(function (array $data) {
@@ -88,7 +86,7 @@ class PurchaseResource extends Resource
 
                             Notification::make()
                                 ->title("Pelanggan berhasil ditambahkan")
-                                ->body("{$customer->name} - {$customer->nik}")
+                                ->body("{$customer->name}")
                                 ->success()
                                 ->send();
 
@@ -140,7 +138,7 @@ class PurchaseResource extends Resource
                 Tables\Columns\TextColumn::make('transaction.invoice')
                     ->label('Faktur')
                     ->searchable(),
-                IconColumn::make('transaction.status')
+                TextColumn::make('transaction.status')
                     ->label('Status')
                     ->icon(fn(string $state): string => match ($state) {
                         'pending' => 'heroicon-o-clock',
@@ -209,12 +207,22 @@ class PurchaseResource extends Resource
                         return redirect()->route('print.purchase', $record->transaction->invoice);
                     })
                     ->link(),
+                DeleteAction::make()
+                    ->visible(fn($record) => $record->transaction?->status !== 'success') // cek null-safe
+                    ->before(function ($record) {
+                        self::deletePurchase($record); // jangan pakai koma di sini
+                    }),
                 // ->url(fn($record) => Pages\InvoicePurchase::getUrl([$record]))
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    // Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                // Tables\Actions\BulkActionGroup::make([
+                //     Tables\Actions\DeleteBulkAction::make()
+                //         ->before(function ($records) {
+                //             foreach ($records as $record) {
+                //                 self::deletePurchase($record);
+                //             }
+                //         }),
+                // ]),
             ]);
     }
 
@@ -231,8 +239,16 @@ class PurchaseResource extends Resource
             'index' => Pages\ListPurchases::route('/'),
             'create' => Pages\CreatePurchase::route('/create'),
             'payment' => Pages\PaymentPage::route('/payment/{invoice}'),
-            // 'view' => Pages\ViewPurchase::route('/{record}'),
-            // 'edit' => Pages\EditPurchase::route('/{record}/edit'),
+
         ];
+    }
+
+
+    private static function deletePurchase($record)
+    {
+        // Hapus transaksi jika ada
+        if ($record->transaction) {
+            $record->transaction->delete();
+        }
     }
 }

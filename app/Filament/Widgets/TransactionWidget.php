@@ -48,7 +48,7 @@ class TransactionWidget extends BaseWidget
                 ->description($formatCurrency($tukarTotals['tambah']))
                 ->descriptionIcon('heroicon-o-arrows-right-left', IconPosition::Before)
                 ->chart($this->getMonthlyTukarChart('tambah'))
-                ->color('success'),
+                ->color('light'),
 
             Stat::make('Tukar Kurang', $percentage($tukarTotals['kurang']))
                 ->description($formatCurrency($tukarTotals['kurang']))
